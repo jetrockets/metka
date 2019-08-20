@@ -35,5 +35,4 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "rubocop-md"
   spec.add_development_dependency "standard"
   spec.add_development_dependency "timecop"
-
 end

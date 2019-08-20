@@ -14,7 +14,12 @@ module Metka
     
     def call(value)
       TagList.new.tap do |tag_list|
-        tag_list.merge value.split(',').map(&:strip).reject(&:empty?)
+        case value
+        when String
+          tag_list.merge value.split(',').map(&:strip).reject(&:empty?)
+        when Enumerable
+          tag_list.merge value.reject(&:empty?)
+        end
       end
     end
   end

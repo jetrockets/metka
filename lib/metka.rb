@@ -3,6 +3,7 @@
 require 'metka/version'
 require 'metka/tag_list'
 require 'metka/generic_parser'
+require 'metka/model'
 
 require 'active_support/core_ext/module'
 require 'dry-configurable'

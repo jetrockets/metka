@@ -1,5 +1,7 @@
 # frozen_string_literal: true
 
+require 'active_support/concern'
+
 module Metka
   # Extends AR model with methods to use tags
   module Model
