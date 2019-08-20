@@ -1,0 +1,5 @@
+test:
+  adapter: postgresql
+  hostname: localhost
+  database: metka_test
+  encoding: utf8
