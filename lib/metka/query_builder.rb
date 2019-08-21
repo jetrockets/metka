@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative 'tagged_with_query/exclude_tags_query'
-require_relative 'tagged_with_query/any_tags_query'
-require_relative 'tagged_with_query/all_tags_query'
+require_relative 'query_builder/exclude_tags_query'
+require_relative 'query_builder/any_tags_query'
+require_relative 'query_builder/all_tags_query'
 
 module Metka
   class QueryBuilder
@@ -10,7 +10,7 @@ module Metka
       if options[:exclude].present?
         ExcludeTagsQuery.new(taggable_model, tag_model, tagging_model, tag_list, options).build
       elsif options[:any].present?
-        AnyTagsQuery.new(taggable_model, column, tag_list, options).build
+        AnyTagsQuery.instance.(taggable_model, column, tag_list)
       else
         AllTagsQuery.new(taggable_model, tag_model, tagging_model, tag_list, options).build
       end

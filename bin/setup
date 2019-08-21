@@ -1,8 +1,9 @@
-#!/usr/bin/env bash
-set -euo pipefail
-IFS=$'\n\t'
-set -vx
+#!/bin/sh
 
-bundle install
+set -e
 
-# Do any other automated setup that you need to do here
+gem install bundler --conservative
+bundle check || bundle install
+
+RAILS_ENV=test bundle exec rake dummy:db:create
+RAILS_ENV=test bundle exec rake dummy:db:schema:load

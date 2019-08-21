@@ -15,9 +15,14 @@ module Metka
 
         return none if tag_list.empty?
 
-        ::Metka::QueryBuilder.new.(self, 'tags', tag_list, options)
+        where(::Metka::QueryBuilder.new.(self, 'tags', tag_list, options))
       end
 
+    end
+
+    def tag_list=(v)
+      self.tags = Metka.config.parser.instance.(v).to_a
+      self.tags = nil if tags.empty?
     end
 
     module ClassMethods # :nodoc:

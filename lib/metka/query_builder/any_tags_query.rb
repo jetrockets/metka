@@ -1,7 +1,11 @@
 # frozen_string_literal: true
 
+require 'singleton'
+
 module Metka
   class AnyTagsQuery
+    include Singleton
+
     def call(model, column_name, tag_list)
       column_cast = Arel::Nodes::NamedFunction.new(
         'CAST',
@@ -9,7 +13,8 @@ module Metka
       )
 
       value = Arel::Nodes::SqlLiteral.new(
-        sanitize_sql_array(["ARRAY[?]", tag_columns_sanitize_list(tag_list)])
+        # In Rails 5.2 and above Sanitanization moved to public level, but still we have to support 4.2 and 5.0 and 5.1
+        ActiveRecord::Base.send(:sanitize_sql_for_conditions, ["ARRAY[?]", tag_list.to_a])
       )
 
       value_cast = Arel::Nodes::NamedFunction.new(
@@ -17,7 +22,7 @@ module Metka
         [value.as("text[]")]
       )
 
-      where(Arel::Nodes::InfixOperation.new("&&", column_cast, value_cast))
+      Arel::Nodes::InfixOperation.new("&&", column_cast, value_cast)
     end
   end
 end
