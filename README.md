@@ -1,3 +1,5 @@
+[![Open Source Helpers](https://www.codetriage.com/jetrockets/metka/badges/users.svg)](https://www.codetriage.com/jetrockets/metka)
+
 # Metka
 
 Rails gem to manage tags with PostgreSQL array columns.
