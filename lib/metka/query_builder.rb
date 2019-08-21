@@ -12,7 +12,7 @@ module Metka
       elsif options[:any].present?
         AnyTagsQuery.instance.(taggable_model, column, tag_list)
       else
-        AllTagsQuery.new(taggable_model, tag_model, tagging_model, tag_list, options).build
+        AllTagsQuery.instance.(taggable_model, column, tag_list)
       end
     end
   end

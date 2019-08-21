@@ -24,7 +24,7 @@ RSpec.describe Metka::Model, :db do
 
       it 'should be able to find by tag' do
         taggable.save!
-        expect(TaggableModel.tagged_with('ruby', any: true).first).to eq(taggable)
+        expect(TaggableModel.tagged_with('ruby').first).to eq(taggable)
       end
     end
   end
