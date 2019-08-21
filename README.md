@@ -23,7 +23,29 @@ Or install it yourself as:
 
 ## Usage
 
-TODO: Write usage instructions here
+```
+class Post < ActiveRecord::Base
+  include Metka::Model
+
+end
+
+@post = Post.new(title: 'Migrate tags in Rails to PostgreSQL')
+@post.tags = ['ruby', 'postgres', 'rails']
+@post.save
+
+Post.tagged_with('ruby')
+=> [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails']
+
+Post.tagged_with('ruby, crystal')
+=> nil
+
+Post.tagged_with('ruby, crystal', any: true)
+=> [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails']
+```
+
+## TBD
+
+
 
 ## Development
 

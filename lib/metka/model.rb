@@ -25,6 +25,10 @@ module Metka
       self.tags = nil if tags.empty?
     end
 
+    def tag_list
+      Metka.config.parser.instance.(tags)
+    end
+
     module ClassMethods # :nodoc:
 
     end

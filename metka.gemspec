@@ -26,9 +26,10 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'dry-configurable'
   spec.add_dependency 'rails', ">= 4.2"
 
-  spec.add_development_dependency "ammeter"
-  spec.add_development_dependency "bundler"
-  spec.add_development_dependency "pg"
+  spec.add_development_dependency 'ammeter'
+  spec.add_development_dependency 'bundler'
+  spec.add_development_dependency 'faker'
+  spec.add_development_dependency 'pg'
   spec.add_development_dependency "rake"
   spec.add_development_dependency "rspec"
   spec.add_development_dependency "rspec-rails"

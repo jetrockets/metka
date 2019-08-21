@@ -1,6 +1,7 @@
 # frozen_string_literal: true
 
-class TaggableModel < ActiveRecord::Base
+class Post < ActiveRecord::Base
   include Metka::Model
   
+  belongs_to :user
 end
