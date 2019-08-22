@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'singleton'
+require "singleton"
 
 module Metka
   ##
@@ -11,12 +11,12 @@ module Metka
   # tag_list # ["One", "Two", "Three"]
   class GenericParser
     include Singleton
-    
+
     def call(value)
       TagList.new.tap do |tag_list|
         case value
         when String
-          tag_list.merge value.split(',').map(&:strip).reject(&:empty?)
+          tag_list.merge value.split(",").map(&:strip).reject(&:empty?)
         when Enumerable
           tag_list.merge value.reject(&:empty?)
         end

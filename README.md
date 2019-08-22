@@ -21,9 +21,9 @@ Or install it yourself as:
 
     $ gem install metka
 
-## Usage
+## Tag objects
 
-```
+```ruby
 class Post < ActiveRecord::Base
   include Metka::Model
 
@@ -32,16 +32,26 @@ end
 @post = Post.new(title: 'Migrate tags in Rails to PostgreSQL')
 @post.tags = ['ruby', 'postgres', 'rails']
 @post.save
+```
 
+## Find tagged objects
+
+```ruby
 Post.tagged_with('ruby')
 => [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails']
 
 Post.tagged_with('ruby, crystal')
 => nil
+```
 
+In example above you will get records that are tagged with `ruby` and `crystal`. To get records that are tagged with any of these tags use `any` option.
+
+```ruby
 Post.tagged_with('ruby, crystal', any: true)
 => [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails']
 ```
+
+## Tag Cloud Strategies
 
 ## TBD
 

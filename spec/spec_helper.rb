@@ -2,11 +2,11 @@
 
 ENV["RAILS_ENV"] = "test"
 
-require 'bundler/setup'
-require 'ammeter'
-require 'faker'
-require 'timecop'
-require 'metka'
+require "bundler/setup"
+require "ammeter"
+require "faker"
+require "timecop"
+require "metka"
 
 require File.expand_path("dummy/config/environment", __dir__)
 

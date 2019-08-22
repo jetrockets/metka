@@ -6,7 +6,7 @@ module Metka
 
     def call(model, column_name, tag_list)
       column_cast = Arel::Nodes::NamedFunction.new(
-        'CAST',
+        "CAST",
         [model.arel_table[column_name].as("text[]")]
       )
 
@@ -16,11 +16,11 @@ module Metka
       )
 
       value_cast = Arel::Nodes::NamedFunction.new(
-        'CAST',
+        "CAST",
         [value.as("text[]")]
       )
 
-      Arel::Nodes::InfixOperation.new('@>', column_cast, value_cast)
+      Arel::Nodes::InfixOperation.new("@>", column_cast, value_cast)
     end
   end
 end
