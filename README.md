@@ -109,13 +109,13 @@ end
 
 Now lets take a look at `tagged_notes` view.
 
-| name    | taggings_count |
-|---------|----------------|
-| Ruby    | 124056         |
-| React   | 30632          |
-| Rails   | 28696          |
-| Crystal | 6566           |
-| Elixir  | 3475           |
+| tag_name | taggings_count |
+|----------|----------------|
+| Ruby     | 124056         |
+| React    | 30632          |
+| Rails    | 28696          |
+| Crystal  | 6566           |
+| Elixir   | 3475           |
 
 Now you can create `TaggedNote` model and work with the view like you usually do with Rails models.
 
