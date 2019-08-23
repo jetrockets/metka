@@ -16,6 +16,9 @@ env:
     - METKA_DB_USER=postgres
     - METKA_DB_NAME=metka
 
+before_install:
+  - gem install -v 2.0.2 bundler --no-rdoc --no-ri
+
 before_script:
   - gem update --system
   - bundle exec rake dummy:db:create
