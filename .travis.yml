@@ -21,5 +21,4 @@ before_install:
 
 before_script:
   - gem update --system
-  - bundle exec rake dummy:db:create
-  - RAILS_ENV=test bundle exec rake dummy:db:create dummy:db:migrate
+  - RAILS_ENV=test bundle exec rake dummy:db:create dummy:db:schema:load
