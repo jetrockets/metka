@@ -57,7 +57,7 @@ There are several strategies to get tag statistics
 
 ### View Strategy
 
-The easiest way to implement but the most slow on SELECT.
+Data about taggings will be agregated in SQL View. The easiest way to implement but the most slow on SELECT.
 
 ```bash
 rails g metka:strategies:view --source-table-name=NAME_OF_TABLE_WITH_TAGS
@@ -65,9 +65,13 @@ rails g metka:strategies:view --source-table-name=NAME_OF_TABLE_WITH_TAGS
 
 ### Materialized View Strategy
 
+Similar to the strategy above, but the view will be Materialized and refreshed with the trigger
+
 TBD
 
 ### Table Strategy with Triggers
+
+
 
 TBD
 
