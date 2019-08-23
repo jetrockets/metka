@@ -1,0 +1,23 @@
+# frozen_string_literal: true
+
+class <%= @migration_class_name %> < ActiveRecord::Migration<%= ActiveRecord::VERSION::MAJOR < 5 ? '' : '[5.0]' %>
+  def up
+    execute <<-SQL
+    CREATE OR REPLACE VIEW <%= view_name %> AS
+
+    SELECT UNNEST
+      ( <%= source_column_name %> ) AS name,
+      COUNT ( * ) AS taggings_count
+    FROM
+      <%= source_table_name %>
+    GROUP BY
+      name;
+    SQL
+  end
+
+  def down
+    execute <<-SQL
+      DROP VIEW <%= view_name %>;
+    SQL
+  end
+end

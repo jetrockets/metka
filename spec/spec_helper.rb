@@ -3,7 +3,7 @@
 ENV["RAILS_ENV"] = "test"
 
 require "bundler/setup"
-require "ammeter"
+require 'ammeter/init'
 require "faker"
 require "timecop"
 require "metka"
