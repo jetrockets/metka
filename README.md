@@ -53,9 +53,23 @@ Post.tagged_with('ruby, crystal', any: true)
 
 ## Tag Cloud Strategies
 
-## TBD
+There are several strategies to get tag statistics
 
+### View Strategy
 
+The easiest way to implement but the most slow on SELECT.
+
+```bash
+rails g metka:strategies:view --source-table-name=NAME_OF_TABLE_WITH_TAGS
+```
+
+### Materialized View Strategy
+
+TBD
+
+### Table Strategy with Triggers
+
+TBD
 
 ## Development
 
