@@ -3,12 +3,13 @@
 ENV["RAILS_ENV"] = "test"
 
 require "bundler/setup"
+
+require File.expand_path("dummy/config/environment", __dir__)
+
 require 'ammeter/init'
 require "faker"
 require "timecop"
 require "metka"
-
-require File.expand_path("dummy/config/environment", __dir__)
 
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure
