@@ -63,6 +63,62 @@ Data about taggings will be agregated in SQL View. The easiest way to implement 
 rails g metka:strategies:view --source-table-name=NAME_OF_TABLE_WITH_TAGS
 ```
 
+The code above will generate a migration that creates view to store aggregated data about tag in `NAME_OF_TABLE_WITH_TAGS` table.
+
+Lets take a look at real example. We have a `notes` table with `tags` column.
+
+| Column | Type                | Default                           |
+|--------|---------------------|-----------------------------------|
+| id     | integer             | nextval('notes_id_seq'::regclass) |
+| body   | text                |                                   |
+| tags   | character varying[] | '{}'::character varying[]         |
+
+Now lets generate a migration.
+
+```bash
+RAILS_ENV=test rails g metka:strategies:view --source-table-name=notes
+```
+
+The result would be:
+
+```ruby
+# frozen_string_literal: true
+
+class CreateTaggedNotesView < ActiveRecord::Migration[5.0]
+  def up
+    execute <<-SQL
+    CREATE OR REPLACE VIEW tagged_notes AS
+
+    SELECT UNNEST
+      ( tags ) AS tag_name,
+      COUNT ( * ) AS taggings_count
+    FROM
+      notes
+    GROUP BY
+      name;
+    SQL
+  end
+
+  def down
+    execute <<-SQL
+      DROP VIEW tagged_notes;
+    SQL
+  end
+end
+```
+
+Now lets take a look at `tagged_notes` view.
+
+| name    | taggings_count |
+|---------|----------------|
+| Ruby    | 124056         |
+| React   | 30632          |
+| Rails   | 28696          |
+| Crystal | 6566           |
+| Elixir  | 3475           |
+
+Now you can create `TaggedNote` model and work with the view like you usually do with Rails models.
+
 ### Materialized View Strategy
 
 Similar to the strategy above, but the view will be Materialized and refreshed with the trigger
