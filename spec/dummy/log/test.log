@@ -667,3 +667,28 @@
   [1m[35m (0.1ms)[0m  [1m[35mRELEASE SAVEPOINT active_record_1[0m
   [1m[35m (12.4ms)[0m  [1m[34mSELECT COUNT(*) AS count_all, "posts"."created_at" AS posts_created_at FROM "posts" WHERE (CAST("posts"."tags" AS text[]) @> CAST(ARRAY['ruby'] AS text[])) GROUP BY "posts"."created_at"[0m
   [1m[35m (0.2ms)[0m  [1m[31mROLLBACK[0m
+  [1m[35m (17.3ms)[0m  [1m[35mBEGIN[0m
+  [1m[35m (12.3ms)[0m  [1m[35mSAVEPOINT active_record_1[0m
+  [1m[35mSQL (32.7ms)[0m  [1m[32mINSERT INTO "users" ("name", "created_at", "updated_at") VALUES ($1, $2, $3) RETURNING "id"[0m  [["name", "Lieselotte Swaniawski III"], ["created_at", "2019-08-26 08:37:03.640273"], ["updated_at", "2019-08-26 08:37:03.640273"]]
+  [1m[35mSQL (6.3ms)[0m  [1m[32mINSERT INTO "posts" ("user_id", "title", "tags", "created_at", "updated_at") VALUES ($1, $2, $3, $4, $5) RETURNING "id"[0m  [["user_id", 20], ["title", "After Many a Summer Dies the Swan"], ["tags", "{ruby,rails,crystal}"], ["created_at", "2019-08-26 08:37:03.685890"], ["updated_at", "2019-08-26 08:37:03.685890"]]
+  [1m[35m (6.0ms)[0m  [1m[35mRELEASE SAVEPOINT active_record_1[0m
+  [1m[36mUser Load (24.2ms)[0m  [1m[34mSELECT "users".* FROM "users" INNER JOIN "posts" ON "posts"."user_id" = "users"."id" WHERE (CAST("posts"."tags" AS text[]) @> CAST(ARRAY['ruby'] AS text[]))[0m
+  [1m[35m (0.3ms)[0m  [1m[31mROLLBACK[0m
+  [1m[35m (0.2ms)[0m  [1m[35mBEGIN[0m
+  [1m[35m (0.2ms)[0m  [1m[31mROLLBACK[0m
+  [1m[35m (0.1ms)[0m  [1m[35mBEGIN[0m
+  [1m[35m (0.2ms)[0m  [1m[31mROLLBACK[0m
+  [1m[35m (0.3ms)[0m  [1m[35mBEGIN[0m
+  [1m[35m (0.1ms)[0m  [1m[35mSAVEPOINT active_record_1[0m
+  [1m[35mSQL (0.3ms)[0m  [1m[32mINSERT INTO "users" ("name", "created_at", "updated_at") VALUES ($1, $2, $3) RETURNING "id"[0m  [["name", "Mr. Neely Bergstrom"], ["created_at", "2019-08-26 08:37:03.743898"], ["updated_at", "2019-08-26 08:37:03.743898"]]
+  [1m[35mSQL (0.3ms)[0m  [1m[32mINSERT INTO "posts" ("user_id", "title", "tags", "created_at", "updated_at") VALUES ($1, $2, $3, $4, $5) RETURNING "id"[0m  [["user_id", 21], ["title", "Down to a Sunless Sea"], ["tags", "{ruby,rails,crystal}"], ["created_at", "2019-08-26 08:37:03.744932"], ["updated_at", "2019-08-26 08:37:03.744932"]]
+  [1m[35m (0.1ms)[0m  [1m[35mRELEASE SAVEPOINT active_record_1[0m
+  [1m[36mPost Load (0.4ms)[0m  [1m[34mSELECT  "posts".* FROM "posts" WHERE (CAST("posts"."tags" AS text[]) @> CAST(ARRAY['ruby'] AS text[])) ORDER BY "posts"."id" ASC LIMIT $1[0m  [["LIMIT", 1]]
+  [1m[35m (0.1ms)[0m  [1m[31mROLLBACK[0m
+  [1m[35m (0.1ms)[0m  [1m[35mBEGIN[0m
+  [1m[35m (0.1ms)[0m  [1m[35mSAVEPOINT active_record_1[0m
+  [1m[35mSQL (0.3ms)[0m  [1m[32mINSERT INTO "users" ("name", "created_at", "updated_at") VALUES ($1, $2, $3) RETURNING "id"[0m  [["name", "Ms. Maxine Hodkiewicz"], ["created_at", "2019-08-26 08:37:03.748943"], ["updated_at", "2019-08-26 08:37:03.748943"]]
+  [1m[35mSQL (0.2ms)[0m  [1m[32mINSERT INTO "posts" ("user_id", "title", "tags", "created_at", "updated_at") VALUES ($1, $2, $3, $4, $5) RETURNING "id"[0m  [["user_id", 22], ["title", "Paths of Glory"], ["tags", "{ruby,rails,crystal}"], ["created_at", "2019-08-26 08:37:03.749814"], ["updated_at", "2019-08-26 08:37:03.749814"]]
+  [1m[35m (0.1ms)[0m  [1m[35mRELEASE SAVEPOINT active_record_1[0m
+  [1m[35m (18.6ms)[0m  [1m[34mSELECT COUNT(*) AS count_all, "posts"."created_at" AS posts_created_at FROM "posts" WHERE (CAST("posts"."tags" AS text[]) @> CAST(ARRAY['ruby'] AS text[])) GROUP BY "posts"."created_at"[0m
+  [1m[35m (0.2ms)[0m  [1m[31mROLLBACK[0m
