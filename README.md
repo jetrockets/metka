@@ -76,7 +76,7 @@ Lets take a look at real example. We have a `notes` table with `tags` column.
 Now lets generate a migration.
 
 ```bash
-RAILS_ENV=test rails g metka:strategies:view --source-table-name=notes
+rails g metka:strategies:view --source-table-name=notes
 ```
 
 The result would be:
