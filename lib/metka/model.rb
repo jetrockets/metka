@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require "active_support/concern"
+require 'active_support/concern'
 
 module Metka
   # Extends AR model with methods to use tags
@@ -14,7 +14,7 @@ module Metka
 
         return none if tag_list.empty?
 
-        where(::Metka::QueryBuilder.new.call(self, "tags", tag_list, options))
+        where(::Metka::QueryBuilder.new.call(self, 'tags', tag_list, options))
       end
     end
 

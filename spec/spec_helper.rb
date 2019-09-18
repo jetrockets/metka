@@ -1,19 +1,19 @@
 # frozen_string_literal: true
 
-ENV["RAILS_ENV"] = "test"
+ENV['RAILS_ENV'] = 'test'
 
-require "bundler/setup"
+require 'bundler/setup'
 
-require File.expand_path("dummy/config/environment", __dir__)
+require File.expand_path('dummy/config/environment', __dir__)
 
 require 'ammeter/init'
-require "faker"
-require "timecop"
-require "metka"
+require 'faker'
+require 'timecop'
+require 'metka'
 
 RSpec.configure do |config|
   # Enable flags like --only-failures and --next-failure
-  config.example_status_persistence_file_path = ".rspec_status"
+  config.example_status_persistence_file_path = '.rspec_status'
 
   # Disable RSpec exposing methods globally on `Module` and `main`
   config.disable_monkey_patching!
@@ -24,7 +24,7 @@ RSpec.configure do |config|
 
   config.expose_dsl_globally = false
 
-  config.example_status_persistence_file_path = "tmp/rspec_examples.txt"
+  config.example_status_persistence_file_path = 'tmp/rspec_examples.txt'
 
   config.order = :random
   Kernel.srand config.seed

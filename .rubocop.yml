@@ -1,5 +1,5 @@
 inherit_gem:
-  standard: config/base.yml
+  jetrockets-standard: config/gems.yml
 
 AllCops:
   Exclude:
@@ -12,12 +12,6 @@ AllCops:
     - '**/*.md'
   DisplayCopNames: true
   TargetRubyVersion: 2.5
-
-Standard/SemanticBlocks:
-  Enabled: false
-
-Style/FrozenStringLiteralComment:
-  Enabled: true
 
 Style/TrailingCommaInArrayLiteral:
   EnforcedStyleForMultiline: no_comma

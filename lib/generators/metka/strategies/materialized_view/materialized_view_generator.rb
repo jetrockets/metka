@@ -6,13 +6,13 @@ require 'rails/generators/active_record'
 module Metka
   module Generators
     module Strategies
-      class ViewGenerator < ::Rails::Generators::Base # :nodoc:
+      class MaterializedViewGenerator < ::Rails::Generators::Base # :nodoc:
         include Rails::Generators::Migration
 
         desc <<~LONGDESC
           Generates migration to implement view strategy for Metka
 
-          > $ rails g metka:strategies:view --source-table-name=NAME_OF_TABLE_WITH_TAGS
+          > $ rails g metka:strategies:materialized_view --source-table-name=NAME_OF_TABLE_WITH_TAGS
         LONGDESC
 
         source_root File.expand_path('templates', __dir__)

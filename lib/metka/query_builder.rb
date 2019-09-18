@@ -1,8 +1,8 @@
 # frozen_string_literal: true
 
-require_relative "query_builder/exclude_tags_query"
-require_relative "query_builder/any_tags_query"
-require_relative "query_builder/all_tags_query"
+require_relative 'query_builder/exclude_tags_query'
+require_relative 'query_builder/any_tags_query'
+require_relative 'query_builder/all_tags_query'
 
 module Metka
   class QueryBuilder
