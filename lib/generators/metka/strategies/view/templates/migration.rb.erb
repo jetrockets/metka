@@ -11,7 +11,7 @@ class <%= @migration_class_name %> < ActiveRecord::Migration<%= ActiveRecord::VE
     FROM
       <%= source_table_name %>
     GROUP BY
-      name;
+      <%= source_column_name.singularize %>_name;
     SQL
   end
 
