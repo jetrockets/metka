@@ -16,11 +16,37 @@ module Metka
       TagList.new.tap do |tag_list|
         case value
         when String
-          tag_list.merge value.split(',').map(&:strip).reject(&:empty?)
+          value = value.to_s.dup
+          gsub_quote_pattern!(tag_list, value, double_quote_pattern)
+          gsub_quote_pattern!(tag_list, value, single_quote_pattern)
+
+          tag_list.merge value.split(Regexp.new joined_delimiter).map(&:strip).reject(&:empty?)
         when Enumerable
           tag_list.merge value.reject(&:empty?)
         end
       end
+    end
+
+    private
+
+    def gsub_quote_pattern!(tag_list, value, pattern)
+      value.gsub!(pattern) {
+        tag_list.add(Regexp.last_match[2])
+        ''
+      }
+    end
+
+    def joined_delimiter
+      delimeter = Metka.config.delimiter
+      delimeter.is_a?(Array) ? delimeter.join('|') : delimeter
+    end
+
+    def single_quote_pattern
+      /(\A|#{joined_delimiter})\s*'(.*?)'\s*(?=#{joined_delimiter}\s*|\z)/
+    end
+
+    def double_quote_pattern
+      /(\A|#{joined_delimiter})\s*"(.*?)"\s*(?=#{joined_delimiter}\s*|\z)/
     end
   end
 end

@@ -51,6 +51,23 @@ Post.tagged_with('ruby, crystal', any: true)
 => [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails']
 ```
 
+## Custom delimiter
+By default, a comma is used as a delimiter to create tags from a string.
+You can make your own custom separator:
+```ruby
+Metka.config.delimiter = [',', ' ', '\|']
+parse_data = Metka::GenericParser.instance.call('cool, data|I have')
+parse_data.to_a
+=>['cool', 'data', 'I', 'have']
+```
+
+## Tags with quote
+```ruby
+Metka.config.delimiter = [',', ' ', '\|']
+parse_data = Metka::GenericParser.instance.call("'I have'|cool, data")
+parse_data.to_a
+=>['I have', 'cool', 'data']
+```
 ## Tag Cloud Strategies
 
 There are several strategies to get tag statistics

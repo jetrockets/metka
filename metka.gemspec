@@ -28,6 +28,7 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'rails', '>= 4.2'
 
   spec.add_development_dependency 'ammeter'
+  spec.add_development_dependency 'pry', '~> 0.12.2'
   spec.add_development_dependency 'bundler'
   spec.add_development_dependency 'faker'
   spec.add_development_dependency 'jetrockets-standard', '~> 1.0.1'
