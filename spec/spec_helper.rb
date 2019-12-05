@@ -6,6 +6,11 @@ require 'bundler/setup'
 
 require File.expand_path('dummy/config/environment', __dir__)
 
+require 'database_cleaner'
+
+require './spec/support/database.rb'
+require './spec/support/database_cleaner.rb'
+
 require 'ammeter/init'
 require 'faker'
 require 'timecop'

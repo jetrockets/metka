@@ -33,7 +33,8 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'jetrockets-standard', '~> 1.0.1'
   spec.add_development_dependency 'pg'
   spec.add_development_dependency 'rake'
-  spec.add_development_dependency 'rspec'
-  spec.add_development_dependency 'rspec-rails'
+  spec.add_development_dependency 'rspec', '~> 3.9'
+  spec.add_development_dependency 'rspec-rails', '~> 3.9'
   spec.add_development_dependency 'timecop'
+  spec.add_development_dependency 'database_cleaner'
 end
