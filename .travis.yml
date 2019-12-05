@@ -22,3 +22,8 @@ before_install:
 before_script:
   - gem update --system
   - RAILS_ENV=test bundle exec rake dummy:db:create dummy:db:schema:load
+
+matrix:
+  include:
+    rvm: 2.5.3
+      gemfile: gemfiles/ruby253.gemfile
