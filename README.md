@@ -56,17 +56,16 @@ By default, a comma is used as a delimiter to create tags from a string.
 You can make your own custom separator:
 ```ruby
 Metka.config.delimiter = [',', ' ', '\|']
-parse_data = Metka::GenericParser.instance.call('cool, data|I have')
-parse_data.to_a
+parsed_data = Metka::GenericParser.instance.call('cool, data|I have')
+parsed_data.to_a
 =>['cool', 'data', 'I', 'have']
 ```
 
 ## Tags with quote
 ```ruby
-Metka.config.delimiter = [',', ' ', '\|']
-parse_data = Metka::GenericParser.instance.call("'I have'|cool, data")
-parse_data.to_a
-=>['I have', 'cool', 'data']
+parsed_data = Metka::GenericParser.instance.call("'cool, data', code")
+parsed_data.to_a
+=> ['cool, data', 'code']
 ```
 ## Tag Cloud Strategies
 
