@@ -5,5 +5,4 @@ set -e
 gem install bundler --conservative
 bundle check || bundle install
 
-RAILS_ENV=test bundle exec rake dummy:db:create
-RAILS_ENV=test bundle exec rake dummy:db:schema:load
+RAILS_ENV=test bundle exec rake dummy:db:migrate:reset

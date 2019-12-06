@@ -41,7 +41,7 @@ module Metka
           end
 
           def migration_name
-            "create_#{view_name}_view"
+            "create_#{view_name}_materialized_view"
           end
 
           def migration_class_name
