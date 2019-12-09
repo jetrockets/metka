@@ -18,7 +18,18 @@ RSpec.describe Metka::Generators::Strategies::ViewGenerator, type: :generator do
 
     it 'creates migration', :aggregate_failures do
       is_expected.to exist
-      is_expected.to contain(/CREATE OR REPLACE VIEW tagged_notes/i)
+    end
+
+    context 'when up migration' do
+      it 'creates view' do
+        is_expected.to contain(/CREATE OR REPLACE VIEW tagged_notes/i)
+      end
+    end
+
+    context 'when down migration' do
+      it 'drop view' do
+        is_expected.to contain(/DROP VIEW/i)
+      end
     end
   end
 end

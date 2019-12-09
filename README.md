@@ -139,7 +139,31 @@ Now you can create `TaggedNote` model and work with the view like you usually do
 
 Similar to the strategy above, but the view will be Materialized and refreshed with the trigger
 
-TBD
+```bash
+rails g metka:strategies:materialized_view --source-table-name=NAME_OF_TABLE_WITH_TAGS
+```
+
+The code above will generate a migration that creates view to store aggregated data about tag in `NAME_OF_TABLE_WITH_TAGS` table.
+
+Lets take a look at real example. We have a `notes` table with `tags` column.
+
+| Column | Type                | Default                           |
+|--------|---------------------|-----------------------------------|
+| id     | integer             | nextval('notes_id_seq'::regclass) |
+| body   | text                |                                   |
+| tags   | character varying[] | '{}'::character varying[]         |
+
+Now lets generate a migration.
+
+```bash
+rails g metka:strategies:materialized_view --source-table-name=notes
+```
+
+The migration code you can see [here](spec/dummy/db/migrate/05_create_tagged_materialized_view_posts_materialized_view.rb "here")
+
+Now lets take a look at `tagged_notes` materialized view.
+
+Now you can create `TaggedNote` model and work with the view like you usually do with Rails models.
 
 ### Table Strategy with Triggers
 

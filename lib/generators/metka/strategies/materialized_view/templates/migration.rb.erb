@@ -29,7 +29,7 @@ class <%= @migration_class_name %> < ActiveRecord::Migration<%= ActiveRecord::VE
       GROUP BY
         <%= source_column_name.singularize %>_name;
 
-    CREATE UNIQUE INDEX idx_<%= source_table_name %>_<%= source_column_name %> ON tagged_articles(tag_name);
+    CREATE UNIQUE INDEX idx_<%= source_table_name %>_<%= source_column_name %> ON <%= view_name %>(<%= source_column_name.singularize %>_name);
 
     CREATE TRIGGER metka_on_<%= source_table_name %>
     AFTER UPDATE OR INSERT OR DELETE ON <%= source_table_name %> FOR EACH ROW
@@ -40,6 +40,7 @@ class <%= @migration_class_name %> < ActiveRecord::Migration<%= ActiveRecord::VE
   def down
     execute <<-SQL
       DROP TRIGGER IF EXISTS metka_on_<%= source_table_name %> ON <%= source_table_name %>;
+      DROP FUNCTION IF EXISTS metka_refresh_<%= view_name %>_materialized_view;
       DROP MATERIALIZED VIEW IF EXISTS <%= view_name %>;
     SQL
   end
