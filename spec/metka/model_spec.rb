@@ -1,88 +1,129 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
+require 'pry'
 
 RSpec.describe Metka::Model, :db do
-  context 'class methods' do
-    let(:tag_list) { 'ruby, rails, crystal' }
+  let!(:tag_list) { 'ruby, rails, crystal' }
+  let!(:material_list) { 'steel, wood, rock' }
+  let!(:user) { User.create(name: Faker::Name.name) }
+  let!(:view_post) { ViewPost.new(user_id: user.id)}
+  let!(:view_post_two) { ViewPost.new(user_id: user.id)}
 
-    let(:user) do
-      User.new(name: Faker::Name.name)
-    end
+  before do
+    view_post.tag_list = tag_list
+    view_post.material_list = material_list
+    view_post.save!
 
-    let(:taggable_view_post) do
-      ViewPost.new.tap do |p|
-        p.user = user
-        p.title = Faker::Book.title
-        p.tag_list = tag_list
+    view_post_two.tag_list = ['php', 'java', 'scala']
+    view_post_two.save!
+  end
+
+  context 'when as tags use tags' do
+    describe '#with_all_tags' do
+      it 'should respond to #with_all_tags' do
+        expect(ViewPost).to respond_to(:with_all_tags)
+      end
+
+      it 'should be able to find by tag' do
+        expect(ViewPost.with_all_tags(tag_list)).to be_present
+        expect(ViewPost.with_all_tags(tag_list.split(', ').first)).to be_present
+        expect(ViewPost.with_all_tags(tag_list.split(', ').last)).to be_present
+        expect(ViewPost.with_all_tags(tag_list).first).to eq(view_post)
+      end
+
+      it 'should return an empty scope for empty tags' do
+        expect(ViewPost.with_all_tags('')).to be_empty
+      end
+
+      it 'should return an empty scope for unused tags' do
+        finding_tags = [tag_list.split(', ').first, 'PHP']
+        expect(ViewPost.with_all_tags(finding_tags)).to be_empty
       end
     end
 
-    let(:taggable_materialized_view_post) do
-      MaterializedViewPost.new.tap do |p|
-        p.user = user
-        p.title = Faker::Book.title
-        p.tag_list = tag_list
+    describe '#with_any' do
+      let(:new_tag_list) { tag_list + 'Go'}
+
+      it 'should respond to #with_any method' do
+        expect(ViewPost).to respond_to(:with_any_tags)
+      end
+
+      it 'should be able to find by tag' do
+        expect(ViewPost.with_any_tags(new_tag_list)).to be_present
+        expect(ViewPost.with_any_tags(new_tag_list.split(', ').first)).to be_present
+        expect(ViewPost.with_any_tags(new_tag_list).first).to eq(view_post)
+      end
+
+      it 'should return an empty scope for unused tags' do
+        expect(ViewPost.with_any_tags(new_tag_list.split(', ').last)).to be_empty
       end
     end
 
-    describe '#tagged_with' do
-      context 'when use with view post' do
-        it 'should respond to #tagged_with method' do
-          expect(ViewPost).to respond_to(:tagged_with)
-        end
-
-        it 'should return an empty scope for empty tags' do
-          ['', ' ', nil, []].each do |tag|
-            expect(ViewPost.tagged_with(tag)).to be_empty
-          end
-        end
-
-        it 'should be able to find by tag' do
-          taggable_view_post.save!
-          expect(ViewPost.tagged_with('ruby').first).to eq(taggable_view_post)
-        end
-
-        it 'should be able to get a count with find by tag when using a group by' do
-          taggable_view_post.save!
-          expect(ViewPost.tagged_with('ruby').group(:created_at).count.count).to eq(1)
-        end
-
-        it 'can be used as scope' do
-          taggable_view_post.save!
-
-          scope_tag = ViewPost.tagged_with('ruby')
-          expect(User.joins(:view_posts).merge(scope_tag).except(:select)).to eq([user])
-        end
+    describe '#without_all_tags' do
+      it 'should respond to #without_all_tags' do
+        expect(ViewPost).to respond_to(:without_all_tags)
       end
 
-      context 'when use with materialized view post' do
-        it 'should respond to #tagged_with method' do
-          expect(MaterializedViewPost).to respond_to(:tagged_with)
-        end
+      it 'should return two object if tags empty' do
+        expect(ViewPost.without_all_tags('').size).to eq(2)
+      end
 
-        it 'should return an empty scope for empty tags' do
-          ['', ' ', nil, []].each do |tag|
-            expect(MaterializedViewPost.tagged_with(tag)).to be_empty
-          end
-        end
+      it 'should return ...' do
+        expect(ViewPost.without_all_tags(view_post_two.tag_list.to_a).first).to eq(view_post)
+        expect(ViewPost.without_all_tags(view_post.tag_list.to_a).first).to eq(view_post_two)
+      end
+    end
 
-        it 'should be able to find by tag' do
-          taggable_materialized_view_post.save!
-          expect(MaterializedViewPost.tagged_with('ruby').first).to eq(taggable_materialized_view_post)
-        end
+    describe '#without_any_tags' do
+      it 'should respond to #without_all_tags' do
+        expect(ViewPost).to respond_to(:without_any_tags)
+      end
 
-        it 'should be able to get a count with find by tag when using a group by' do
-          taggable_materialized_view_post.save!
-          expect(MaterializedViewPost.tagged_with('ruby').group(:created_at).count.count).to eq(1)
-        end
+      it 'should return view_post' do
+        expect(ViewPost.without_any_tags(view_post_two.tag_list.to_a << 'Clojure').first).to eq(view_post)
+      end
+    end
+  end
 
-        it 'can be used as scope' do
-          taggable_materialized_view_post.save!
+  context 'when as tags use materials' do
+    describe '#with_all_materials' do
+      it 'should respond to #with_all_materials' do
+        expect(ViewPost).to respond_to(:with_all_materials)
+      end
 
-          scope_tag = MaterializedViewPost.tagged_with('ruby')
-          expect(User.joins(:materialized_view_posts).merge(scope_tag).except(:select)).to eq([user])
-        end
+      it 'should be able to find by material' do
+        expect(ViewPost.with_all_materials(material_list)).to be_present
+        expect(ViewPost.with_all_materials(material_list.split(', ').first)).to be_present
+        expect(ViewPost.with_all_materials(material_list.split(', ').last)).to be_present
+        expect(ViewPost.with_all_materials(material_list).first).to eq(view_post)
+      end
+
+      it 'should return an empty scope for empty materials' do
+        expect(ViewPost.with_all_materials('')).to be_empty
+      end
+
+      it 'should return an empty scope for unused materials' do
+        finding_materials = [material_list.split(', ').first, 'PHP']
+        expect(ViewPost.with_all_materials(finding_materials)).to be_empty
+      end
+    end
+
+    describe '#with_any_materials' do
+      let(:new_material_list) { material_list + 'iron'}
+
+      it 'should respond to #with_any_materials' do
+        expect(ViewPost).to respond_to(:with_any_materials)
+      end
+
+      it 'should be able to find by material' do
+        expect(ViewPost.with_any_materials(new_material_list)).to be_present
+        expect(ViewPost.with_any_materials(new_material_list.split(', ').first)).to be_present
+        expect(ViewPost.with_any_materials(new_material_list).first).to eq(view_post)
+      end
+
+      it 'should return an empty scope for unused tags' do
+        expect(ViewPost.with_any_materials(new_material_list.split(', ').last)).to be_empty
       end
     end
   end
