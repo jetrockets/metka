@@ -25,30 +25,66 @@ Or install it yourself as:
 
 ```ruby
 class Post < ActiveRecord::Base
-  include Metka::Model
-
+  include Metka::Model(column: 'tags')
+  include Metka::Model(column: 'sub_tags')
 end
 
 @post = Post.new(title: 'Migrate tags in Rails to PostgreSQL')
-@post.tags = ['ruby', 'postgres', 'rails']
+@post.tag_list = 'ruby, postgres, rails'
+@post.sub_tag_list = 'programming'
 @post.save
 ```
 
 ## Find tagged objects
 
+### .with_all_#{column_name}
 ```ruby
-Post.tagged_with('ruby')
-=> [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails']
+Post.with_all_tags('ruby')
+=> [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails']]
 
-Post.tagged_with('ruby, crystal')
-=> nil
+Post.with_all_tags('ruby, crystal')
+=> []
+
+Post.with_all_tags('')
+=> []
 ```
 
-In example above you will get records that are tagged with `ruby` and `crystal`. To get records that are tagged with any of these tags use `any` option.
-
+### .with_any_#{column_name}
 ```ruby
-Post.tagged_with('ruby, crystal', any: true)
-=> [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails']
+Post.with_any_tags('ruby')
+=> [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails']]
+
+Post.with_any_tags('ruby, crystal')
+=> [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails']]
+
+Post.with_any_tags('')
+=> []
+```
+### .without_all_#{column_name}
+```ruby
+Post.without_all_tags('ruby')
+=> []
+
+Post.without_all_tags('ruby, elixir')
+=> [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails']]
+
+Post.with_all_tags('')
+=> [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails']]
+```
+
+### .without_any_#{column_name}
+```ruby
+Post.without_any_tags('ruby')
+=> []
+
+Post.without_any_tags('elixir')
+=> [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails']]
+
+Post.without_any_tags('ruby, elixir')
+=> []
+
+Post.without_any_tags('')
+=> [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails']]
 ```
 
 ## Custom delimiter
