@@ -1,33 +1,47 @@
 # frozen_string_literal: true
 
-require 'active_support/concern'
-
 module Metka
-  # Extends AR model with methods to use tags
-  module Model
-    extend ActiveSupport::Concern
+  def self.Model(column:, **options)
+    Metka::Model.new(column: column, **options)
+  end
 
-    included do
-      scope :tagged_with, ->(tags, options = {}) do
-        tag_list = Metka.config.parser.instance.call(tags)
-        options = options.dup
+  class Model < Module
+    def initialize(column: , **options)
+      @column = column
+      @options = options
+    end
 
-        return none if tag_list.empty?
+    def included(base)
+      column = @column
+      parser = ->(tags) {
+        @options[:parser] ? @options[:parser].call(tags) : Metka.config.parser.instance.call(tags)
+      }
 
-        where(::Metka::QueryBuilder.new.call(self, 'tags', tag_list, options))
+      search_by_tags = ->(model, tags, column, **options) {
+        parsed_tag_list = parser.call(tags)
+        if options[:without].present?
+          model.where.not(::Metka::QueryBuilder.new.call(model, column, parsed_tag_list, options))
+        else
+          return model.none if parsed_tag_list.empty?
+          model.where(::Metka::QueryBuilder.new.call(model, column, parsed_tag_list, options))
+        end
+      }
+
+      base.class_eval do
+        scope "with_all_#{column}", ->(tags) { search_by_tags.call(self, tags, column) }
+        scope "with_any_#{column}", ->(tags) { search_by_tags.call(self, tags, column, { any: true }) }
+        scope "without_all_#{column}", ->(tags) { search_by_tags.call(self, tags, column, { exclude_all: true, without: true }) }
+        scope "without_any_#{column}", ->(tags) { search_by_tags.call(self, tags, column, { exclude_any: true, without: true }) }
       end
-    end
 
-    def tag_list=(v)
-      self.tags = Metka.config.parser.instance.call(v).to_a
-      self.tags = nil if tags.empty?
-    end
+      base.define_method(column.singularize + '_list=') do |v|
+        self.write_attribute(column, parser.call(v).to_a)
+        self.write_attribute(column, nil) if self.send(column).empty?
+      end
 
-    def tag_list
-      Metka.config.parser.instance.call(tags)
-    end
-
-    module ClassMethods # :nodoc:
+      base.define_method(column.singularize + '_list') do
+        parser.call(self.send(column))
+      end
     end
   end
 end

@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 module Metka
-  class AnyTagsQuery < BaseQuery
+  class ExcludeAnyTagsQuery< BaseQuery
     private
 
     def infix_operator

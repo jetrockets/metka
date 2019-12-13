@@ -1,14 +1,18 @@
 # frozen_string_literal: true
 
-require_relative 'query_builder/exclude_tags_query'
+require_relative 'query_builder/base_query'
+require_relative 'query_builder/exclude_all_tags_query'
+require_relative 'query_builder/exclude_any_tags_query'
 require_relative 'query_builder/any_tags_query'
 require_relative 'query_builder/all_tags_query'
 
 module Metka
   class QueryBuilder
     def call(taggable_model, column, tag_list, options)
-      if options[:exclude].present?
-        ExcludeTagsQuery.new(taggable_model, tag_model, tagging_model, tag_list, options).build
+      if options[:exclude_all].present?
+        ExcludeAllTagsQuery.instance.call(taggable_model, column, tag_list)
+      elsif options[:exclude_any].present?
+        ExcludeAnyTagsQuery.instance.call(taggable_model, column, tag_list)
       elsif options[:any].present?
         AnyTagsQuery.instance.call(taggable_model, column, tag_list)
       else

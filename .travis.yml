@@ -8,20 +8,23 @@ sudo: false
 notifications:
   email: false
 
+services:
+  - postgresql
 addons:
-  postgresql: '9.6'
-
-env:
-  global:
-    - METKA_DB_USER=postgres
-    - METKA_DB_NAME=metka
+  postgresql: "11.2"
 
 before_install:
   - gem install -v 2.0.2 bundler
+  - sudo apt-get update
+  - sudo apt-get --yes remove postgresql\*
+  - sudo apt-get install -y postgresql-11 postgresql-client-11
+  - sudo cp /etc/postgresql/{9.6,11}/main/pg_hba.conf
+  - sudo service postgresql restart 11
 
 before_script:
   - gem update --system
-  - RAILS_ENV=test bundle exec rake dummy:db:create dummy:db:schema:load
+  - psql -c 'CREATE ROLE travis SUPERUSER LOGIN CREATEDB;' -U postgres
+  - ./bin/setup
 
 matrix:
   include:

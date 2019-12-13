@@ -3,7 +3,7 @@
 
 # Metka
 
-Rails gem to manage tags with PostgreSQL array columns.
+Rails gem to manage tags with SonggreSQL array columns.
 
 ## Installation
 
@@ -24,31 +24,79 @@ Or install it yourself as:
 ## Tag objects
 
 ```ruby
-class Post < ActiveRecord::Base
-  include Metka::Model
-
+class Song < ActiveRecord::Base
+  include Metka::Model(column: 'tags')
+  include Metka::Model(column: 'genres')
 end
 
-@post = Post.new(title: 'Migrate tags in Rails to PostgreSQL')
-@post.tags = ['ruby', 'postgres', 'rails']
-@post.save
+@Song = Song.new(title: 'Migrate tags in Rails to SonggreSQL')
+@Song.tag_list = 'top, chill'
+@Song.genre_list = 'rock, jazz, pop'
+@Song.save
 ```
 
 ## Find tagged objects
 
+### .with_all_#{column_name}
 ```ruby
-Post.tagged_with('ruby')
-=> [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails']
+Song.with_all_tags('top')
+=> [#<Song id: 1, title: 'Migrate tags in Rails to SonggreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
 
-Post.tagged_with('ruby, crystal')
-=> nil
+Song.with_all_tags('top, 1990')
+=> []
+
+Song.with_all_tags('')
+=> []
+
+Song.with_all_genres('rock')
+=> [#<Song id: 1, title: 'Migrate tags in Rails to SonggreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
 ```
 
-In example above you will get records that are tagged with `ruby` and `crystal`. To get records that are tagged with any of these tags use `any` option.
-
+### .with_any_#{column_name}
 ```ruby
-Post.tagged_with('ruby, crystal', any: true)
-=> [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails']
+Song.with_any_tags('chill')
+=> [#<Song id: 1, title: 'Migrate tags in Rails to SonggreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
+
+Song.with_any_tags('chill, 1980')
+=> [#<Song id: 1, title: 'Migrate tags in Rails to SonggreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
+
+Song.with_any_tags('')
+=> []
+
+Song.with_any_genres('rock, rap')
+=> [#<Song id: 1, title: 'Migrate tags in Rails to SonggreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
+```
+### .without_all_#{column_name}
+```ruby
+Song.without_all_tags('top')
+=> []
+
+Song.without_all_tags('top, 1990')
+=> [#<Song id: 1, title: 'Migrate tags in Rails to SonggreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
+
+Song.without_all_tags('')
+=> [#<Song id: 1, title: 'Migrate tags in Rails to SonggreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
+
+Song.without_all_genres('rock, pop')
+=> [#<Song id: 1, title: 'Migrate tags in Rails to SonggreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
+
+Song.without_all_genres('rock')
+=> []
+```
+
+### .without_any_#{column_name}
+```ruby
+Song.without_any_tags('top, 1990')
+=> []
+
+Song.without_any_tags('1990, 1980')
+=> [#<Song id: 1, title: 'Migrate tags in Rails to SonggreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
+
+Song.without_any_genres('rock, pop')
+=> []
+
+Song.without_any_genres('')
+=> [#<Song id: 1, title: 'Migrate tags in Rails to SonggreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
 ```
 
 ## Custom delimiter
@@ -67,6 +115,18 @@ parsed_data = Metka::GenericParser.instance.call("'cool, data', code")
 parsed_data.to_a
 => ['cool, data', 'code']
 ```
+
+## Custom parser
+By default we use [generic_parser](lib/metka/generic_parser.rb "generic_parser")
+If you want use your custom parser you can do:
+```ruby
+class Song < ActiveRecord::Base
+  include Metka::Model(column: 'tags', parser: Your::Custom::Parser.instance)
+  include Metka::Model(column: 'genres')
+end
+```
+Custom parser must be a singleton class that has a `.call` method that accepts the tag string
+
 ## Tag Cloud Strategies
 
 There are several strategies to get tag statistics
@@ -139,13 +199,42 @@ Now you can create `TaggedNote` model and work with the view like you usually do
 
 Similar to the strategy above, but the view will be Materialized and refreshed with the trigger
 
-TBD
+```bash
+rails g metka:strategies:materialized_view --source-table-name=NAME_OF_TABLE_WITH_TAGS
+```
+
+The code above will generate a migration that creates view to store aggregated data about tag in `NAME_OF_TABLE_WITH_TAGS` table.
+
+Lets take a look at real example. We have a `notes` table with `tags` column.
+
+| Column | Type                | Default                           |
+|--------|---------------------|-----------------------------------|
+| id     | integer             | nextval('notes_id_seq'::regclass) |
+| body   | text                |                                   |
+| tags   | character varying[] | '{}'::character varying[]         |
+
+Now lets generate a migration.
+
+```bash
+rails g metka:strategies:materialized_view --source-table-name=notes
+```
+
+The migration code you can see [here](spec/dummy/db/migrate/05_create_tagged_materialized_view_Songs_materialized_view.rb "here")
+
+Now lets take a look at `tagged_notes` materialized view.
+
+Now you can create `TaggedNote` model and work with the view like you usually do with Rails models.
 
 ### Table Strategy with Triggers
 
 
 
 TBD
+
+## Inspired by
+1. [ActsAsTaggableOn](https://github.com/mbleigh/acts-as-taggable-on)
+2. [ActsAsTaggableArrayOn](https://github.com/tmiyamon/acts-as-taggable-array-on)
+3. [TagColumns](https://github.com/hopsoft/tag_columns)
 
 ## Development
 
@@ -156,6 +245,10 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 ## Contributing
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/metka. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
+
+## Credits
+![JetRockets](https://jetrockets.pro/jetrockets-icons-black.png)
+Metka is maintained by [JetRockets](http://www.jetrockets.ru).
 
 ## License
 
