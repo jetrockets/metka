@@ -5,7 +5,7 @@ module Metka
     private
 
     def infix_operator
-      '@>'
+      '&&'
     end
   end
 end

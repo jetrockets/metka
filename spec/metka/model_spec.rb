@@ -1,7 +1,6 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
-require 'pry'
 
 RSpec.describe Metka::Model, :db do
   let!(:tag_list) { 'ruby, rails, crystal' }
@@ -20,7 +19,7 @@ RSpec.describe Metka::Model, :db do
   end
 
   context 'when as tags use tags' do
-    describe '#with_all_tags' do
+    describe '.with_all_tags' do
       it 'should respond to #with_all_tags' do
         expect(ViewPost).to respond_to(:with_all_tags)
       end
@@ -42,7 +41,7 @@ RSpec.describe Metka::Model, :db do
       end
     end
 
-    describe '#with_any' do
+    describe '.with_any' do
       let(:new_tag_list) { tag_list + 'Go'}
 
       it 'should respond to #with_any method' do
@@ -60,7 +59,7 @@ RSpec.describe Metka::Model, :db do
       end
     end
 
-    describe '#without_all_tags' do
+    describe '.without_all_tags' do
       it 'should respond to #without_all_tags' do
         expect(ViewPost).to respond_to(:without_all_tags)
       end
@@ -69,25 +68,30 @@ RSpec.describe Metka::Model, :db do
         expect(ViewPost.without_all_tags('').size).to eq(2)
       end
 
-      it 'should return ...' do
+      it 'should return post' do
         expect(ViewPost.without_all_tags(view_post_two.tag_list.to_a).first).to eq(view_post)
         expect(ViewPost.without_all_tags(view_post.tag_list.to_a).first).to eq(view_post_two)
       end
+
+      it 'should return all view post if posts dont include all tags' do
+        expect(ViewPost.without_all_tags(view_post_two.tag_list.to_a << '123').count).to eq(2)
+      end
     end
 
-    describe '#without_any_tags' do
-      it 'should respond to #without_all_tags' do
+    describe '.without_any_tags' do
+      it 'should respond to #without_any_tags' do
         expect(ViewPost).to respond_to(:without_any_tags)
       end
 
       it 'should return view_post' do
+        expect(ViewPost.without_any_tags(view_post_two.tag_list.to_a << 'Clojure').count).to eq(1)
         expect(ViewPost.without_any_tags(view_post_two.tag_list.to_a << 'Clojure').first).to eq(view_post)
       end
     end
   end
 
   context 'when as tags use materials' do
-    describe '#with_all_materials' do
+    describe '.with_all_materials' do
       it 'should respond to #with_all_materials' do
         expect(ViewPost).to respond_to(:with_all_materials)
       end
@@ -109,7 +113,7 @@ RSpec.describe Metka::Model, :db do
       end
     end
 
-    describe '#with_any_materials' do
+    describe '.with_any_materials' do
       let(:new_material_list) { material_list + 'iron'}
 
       it 'should respond to #with_any_materials' do
