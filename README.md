@@ -29,10 +29,10 @@ class Song < ActiveRecord::Base
   include Metka::Model(column: 'genres')
 end
 
-@Song = Song.new(title: 'Migrate tags in Rails to SonggreSQL')
-@Song.tag_list = 'top, chill'
-@Song.genre_list = 'rock, jazz, pop'
-@Song.save
+@song = Song.new(title: 'Migrate tags in Rails to SonggreSQL')
+@song.tag_list = 'top, chill'
+@song.genre_list = 'rock, jazz, pop'
+@song.save
 ```
 
 ## Find tagged objects
