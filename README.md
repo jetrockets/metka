@@ -40,25 +40,31 @@ end
 ### .with_all_#{column_name}
 ```ruby
 Post.with_all_tags('ruby')
-=> [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails']]
+=> [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails'], sub_tags: ['programming']]
 
 Post.with_all_tags('ruby, crystal')
 => []
 
 Post.with_all_tags('')
 => []
+
+Post.with_all_sub_tags('programming')
+=> [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails'], sub_tags: ['programming']]
 ```
 
 ### .with_any_#{column_name}
 ```ruby
 Post.with_any_tags('ruby')
-=> [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails']]
+=> [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails'], sub_tags: ['programming']]
 
 Post.with_any_tags('ruby, crystal')
-=> [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails']]
+=> [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails'], sub_tags: ['programming']]
 
 Post.with_any_tags('')
 => []
+
+Post.with_any_sub_tags('programming, job')
+=> [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails'], sub_tags: ['programming']]
 ```
 ### .without_all_#{column_name}
 ```ruby
@@ -66,10 +72,10 @@ Post.without_all_tags('ruby')
 => []
 
 Post.without_all_tags('ruby, elixir')
-=> [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails']]
+=> [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails'], sub_tags: ['programming']]
 
 Post.with_all_tags('')
-=> [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails']]
+=> [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails'], sub_tags: ['programming']]
 ```
 
 ### .without_any_#{column_name}
@@ -78,13 +84,13 @@ Post.without_any_tags('ruby')
 => []
 
 Post.without_any_tags('elixir')
-=> [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails']]
+=> [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails'], sub_tags: ['programming']]
 
 Post.without_any_tags('ruby, elixir')
 => []
 
 Post.without_any_tags('')
-=> [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails']]
+=> [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails'], sub_tags: ['programming']]
 ```
 
 ## Custom delimiter
