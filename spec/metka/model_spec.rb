@@ -20,7 +20,7 @@ RSpec.describe Metka::Model, :db do
 
   context 'when as tags use tags' do
     describe '.with_all_tags' do
-      it 'should respond to #with_all_tags' do
+      it 'should respond to .with_all_tags' do
         expect(ViewPost).to respond_to(:with_all_tags)
       end
 
@@ -44,7 +44,7 @@ RSpec.describe Metka::Model, :db do
     describe '.with_any' do
       let(:new_tag_list) { tag_list + 'Go'}
 
-      it 'should respond to #with_any method' do
+      it 'should respond to .with_any method' do
         expect(ViewPost).to respond_to(:with_any_tags)
       end
 
@@ -60,7 +60,7 @@ RSpec.describe Metka::Model, :db do
     end
 
     describe '.without_all_tags' do
-      it 'should respond to #without_all_tags' do
+      it 'should respond to .without_all_tags' do
         expect(ViewPost).to respond_to(:without_all_tags)
       end
 
@@ -79,7 +79,7 @@ RSpec.describe Metka::Model, :db do
     end
 
     describe '.without_any_tags' do
-      it 'should respond to #without_any_tags' do
+      it 'should respond to .without_any_tags' do
         expect(ViewPost).to respond_to(:without_any_tags)
       end
 
@@ -92,7 +92,7 @@ RSpec.describe Metka::Model, :db do
 
   context 'when as tags use materials' do
     describe '.with_all_materials' do
-      it 'should respond to #with_all_materials' do
+      it 'should respond to .with_all_materials' do
         expect(ViewPost).to respond_to(:with_all_materials)
       end
 
@@ -116,7 +116,7 @@ RSpec.describe Metka::Model, :db do
     describe '.with_any_materials' do
       let(:new_material_list) { material_list + 'iron'}
 
-      it 'should respond to #with_any_materials' do
+      it 'should respond to .with_any_materials' do
         expect(ViewPost).to respond_to(:with_any_materials)
       end
 
