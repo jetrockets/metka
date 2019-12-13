@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    metka (0.1.1)
+    metka (1.0.0)
       dry-configurable
       rails (>= 4.2)
 

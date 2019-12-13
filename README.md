@@ -3,7 +3,7 @@
 
 # Metka
 
-Rails gem to manage tags with PostgreSQL array columns.
+Rails gem to manage tags with SonggreSQL array columns.
 
 ## Installation
 
@@ -24,73 +24,79 @@ Or install it yourself as:
 ## Tag objects
 
 ```ruby
-class Post < ActiveRecord::Base
+class Song < ActiveRecord::Base
   include Metka::Model(column: 'tags')
-  include Metka::Model(column: 'sub_tags')
+  include Metka::Model(column: 'genres')
 end
 
-@post = Post.new(title: 'Migrate tags in Rails to PostgreSQL')
-@post.tag_list = 'ruby, postgres, rails'
-@post.sub_tag_list = 'programming'
-@post.save
+@Song = Song.new(title: 'Migrate tags in Rails to SonggreSQL')
+@Song.tag_list = 'top, chill'
+@Song.genre_list = 'rock, jazz, pop'
+@Song.save
 ```
 
 ## Find tagged objects
 
 ### .with_all_#{column_name}
 ```ruby
-Post.with_all_tags('ruby')
-=> [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails'], sub_tags: ['programming']]
+Song.with_all_tags('top')
+=> [#<Song id: 1, title: 'Migrate tags in Rails to SonggreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
 
-Post.with_all_tags('ruby, crystal')
+Song.with_all_tags('top, 1990')
 => []
 
-Post.with_all_tags('')
+Song.with_all_tags('')
 => []
 
-Post.with_all_sub_tags('programming')
-=> [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails'], sub_tags: ['programming']]
+Song.with_all_genres('rock')
+=> [#<Song id: 1, title: 'Migrate tags in Rails to SonggreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
 ```
 
 ### .with_any_#{column_name}
 ```ruby
-Post.with_any_tags('ruby')
-=> [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails'], sub_tags: ['programming']]
+Song.with_any_tags('chill')
+=> [#<Song id: 1, title: 'Migrate tags in Rails to SonggreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
 
-Post.with_any_tags('ruby, crystal')
-=> [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails'], sub_tags: ['programming']]
+Song.with_any_tags('chill, 1980')
+=> [#<Song id: 1, title: 'Migrate tags in Rails to SonggreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
 
-Post.with_any_tags('')
+Song.with_any_tags('')
 => []
 
-Post.with_any_sub_tags('programming, job')
-=> [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails'], sub_tags: ['programming']]
+Song.with_any_genres('rock, rap')
+=> [#<Song id: 1, title: 'Migrate tags in Rails to SonggreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
 ```
 ### .without_all_#{column_name}
 ```ruby
-Post.without_all_tags('ruby')
+Song.without_all_tags('top')
 => []
 
-Post.without_all_tags('ruby, elixir')
-=> [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails'], sub_tags: ['programming']]
+Song.without_all_tags('top, 1990')
+=> [#<Song id: 1, title: 'Migrate tags in Rails to SonggreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
 
-Post.with_all_tags('')
-=> [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails'], sub_tags: ['programming']]
+Song.without_all_tags('')
+=> [#<Song id: 1, title: 'Migrate tags in Rails to SonggreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
+
+Song.without_all_genres('rock, pop')
+=> [#<Song id: 1, title: 'Migrate tags in Rails to SonggreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
+
+Song.without_all_genres('rock')
+=> []
 ```
 
 ### .without_any_#{column_name}
 ```ruby
-Post.without_any_tags('ruby')
+Song.without_any_tags('top, 1990')
 => []
 
-Post.without_any_tags('elixir')
-=> [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails'], sub_tags: ['programming']]
+Song.without_any_tags('1990, 1980')
+=> [#<Song id: 1, title: 'Migrate tags in Rails to SonggreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
 
-Post.without_any_tags('ruby, elixir')
+Song.without_any_genres('rock, pop')
 => []
 
-Post.without_any_tags('')
-=> [#<Post id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['ruby', 'postgres', 'rails'], sub_tags: ['programming']]
+Song.without_any_genres('')
+=> [#<Song id: 1, title: 'Migrate tags in Rails to SonggreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
 ```
 
 ## Custom delimiter
@@ -109,6 +115,18 @@ parsed_data = Metka::GenericParser.instance.call("'cool, data', code")
 parsed_data.to_a
 => ['cool, data', 'code']
 ```
+
+## Custom parser
+By default we use [generic_parser](lib/metka/generic_parser.rb "generic_parser")
+If you want use your custom parser you can do:
+```ruby
+class Song < ActiveRecord::Base
+  include Metka::Model(column: 'tags', parser: Your::Custom::Parser.instance)
+  include Metka::Model(column: 'genres')
+end
+```
+Custom parser must be a singleton class that has a `.call` method that accepts the tag string
+
 ## Tag Cloud Strategies
 
 There are several strategies to get tag statistics
@@ -201,7 +219,7 @@ Now lets generate a migration.
 rails g metka:strategies:materialized_view --source-table-name=notes
 ```
 
-The migration code you can see [here](spec/dummy/db/migrate/05_create_tagged_materialized_view_posts_materialized_view.rb "here")
+The migration code you can see [here](spec/dummy/db/migrate/05_create_tagged_materialized_view_Songs_materialized_view.rb "here")
 
 Now lets take a look at `tagged_notes` materialized view.
 
@@ -213,6 +231,11 @@ Now you can create `TaggedNote` model and work with the view like you usually do
 
 TBD
 
+## Inspired by
+1. [ActsAsTaggableOn](https://github.com/mbleigh/acts-as-taggable-on)
+2. [ActsAsTaggableArrayOn](https://github.com/tmiyamon/acts-as-taggable-array-on)
+3. [TagColumns](https://github.com/hopsoft/tag_columns)
+
 ## Development
 
 After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
@@ -222,6 +245,10 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 ## Contributing
 
 Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/metka. This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
+
+## Credits
+![JetRockets](https://jetrockets.pro/jetrockets-icons-black.png)
+Metka is maintained by [JetRockets](http://www.jetrockets.ru).
 
 ## License
 
