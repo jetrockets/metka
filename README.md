@@ -24,6 +24,23 @@ Or install it yourself as:
 
 ## Tag objects
 
+```bash
+rails g migration CreateSongs
+```
+
+```ruby
+class CreateSongs < ActiveRecord::Migration[5.0]
+  def change
+    create_table :songs do |t|
+      t.string  :title
+      t.string  :tags, array: true
+      t.string  :genres, array: true
+      t.timestamps
+    end
+  end
+end
+```
+
 ```ruby
 class Song < ActiveRecord::Base
   include Metka::Model(column: 'tags')
