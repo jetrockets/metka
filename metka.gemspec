@@ -24,18 +24,19 @@ Gem::Specification.new do |spec|
   spec.executables = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ['lib']
 
-  spec.add_dependency 'dry-configurable'
-  spec.add_dependency 'rails', '>= 4.2'
+  spec.add_dependency 'dry-configurable', '>= 0.8'
+  spec.add_dependency 'rails', '>= 5.1'
 
-  spec.add_development_dependency 'ammeter'
-  spec.add_development_dependency 'pry', '~> 0.12.2'
-  spec.add_development_dependency 'bundler'
-  spec.add_development_dependency 'faker'
+  spec.add_development_dependency 'ammeter', '>= 1.1'
+  spec.add_development_dependency 'pry', '>= 0.12.2'
+  spec.add_development_dependency 'bundler', '>= 1.3'
+  spec.add_development_dependency 'faker', '>= 2.8'
   spec.add_development_dependency 'jetrockets-standard', '~> 1.0.1'
-  spec.add_development_dependency 'pg'
-  spec.add_development_dependency 'rake'
-  spec.add_development_dependency 'rspec', '~> 3.9'
-  spec.add_development_dependency 'rspec-rails', '~> 3.9'
-  spec.add_development_dependency 'timecop'
-  spec.add_development_dependency 'database_cleaner'
+  spec.add_development_dependency 'pg', '>= 1.1'
+  spec.add_development_dependency 'rake', '>= 0.8.7'
+  spec.add_development_dependency 'rspec', '>= 3.9'
+  spec.add_development_dependency 'rspec-rails', '>= 3.9'
+  spec.add_development_dependency 'timecop', '>= 0.9'
+  spec.add_development_dependency 'database_cleaner', '>= 1.7'
+  spec.required_ruby_version = '>= 2.5'
 end
