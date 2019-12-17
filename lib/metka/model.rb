@@ -1,7 +1,11 @@
 # frozen_string_literal: true
+require 'pry'
 
 module Metka
+  TAGGED_COLUMN_NAMES = []
+
   def self.Model(column:, **options)
+    TAGGED_COLUMN_NAMES << column unless TAGGED_COLUMN_NAMES.include?(column)
     Metka::Model.new(column: column, **options)
   end
 
@@ -27,12 +31,39 @@ module Metka
         end
       }
 
+      tagged_with = ->(model, tags, **options) {
+        parsed_tag_list = parser.call(tags)
+        return model.none if parsed_tag_list.empty?
+
+        request_sql = TAGGED_COLUMN_NAMES.map do |column|
+          ::Metka::QueryBuilder.new.call(model, column, parsed_tag_list, options).to_sql
+        end.join(' OR ')
+
+        model.where(request_sql)
+      }
+
+      tagged_without = ->(model, tags, **options) {
+        parsed_tag_list = parser.call(tags)
+        return model.none if parsed_tag_list.empty?
+
+        request_sql = TAGGED_COLUMN_NAMES.map do |column|
+          ::Metka::QueryBuilder.new.call(model, column, parsed_tag_list, options).to_sql
+        end.join(' AND ')
+
+        model.where.not(request_sql)
+      }
+
       base.class_eval do
         scope "with_all_#{column}", ->(tags) { search_by_tags.call(self, tags, column) }
         scope "with_any_#{column}", ->(tags) { search_by_tags.call(self, tags, column, { any: true }) }
         scope "without_all_#{column}", ->(tags) { search_by_tags.call(self, tags, column, { exclude_all: true, without: true }) }
         scope "without_any_#{column}", ->(tags) { search_by_tags.call(self, tags, column, { exclude_any: true, without: true }) }
+        scope :tagged_with_any, ->(tags) { tagged_with.call(self, tags, any: true )} unless self.respond_to?(:tagged_with_any)
+        scope :tagged_with_all, ->(tags) { tagged_with.call(self, tags )} unless self.respond_to?(:tagged_with_all)
+        scope :tagged_without_all, ->(tags) { tagged_without.call(self, tags, exclude_all: true)} unless self.respond_to?(:tagged_without_all)
+        scope :tagged_without_any, ->(tags) { tagged_without.call(self, tags, exclude_any: true)} unless self.respond_to?(:tagged_without_any)
       end
+
 
       base.define_method(column.singularize + '_list=') do |v|
         self.write_attribute(column, parser.call(v).to_a)
