@@ -22,7 +22,7 @@ before_install:
   - sudo service postgresql restart 11
 
 before_script:
-  - gem update --system
+  # - gem update --system
   - psql -c 'CREATE ROLE travis SUPERUSER LOGIN CREATEDB;' -U postgres
   - ./bin/setup
 
