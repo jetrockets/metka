@@ -37,18 +37,17 @@ module Metka
 
         request_sql = TAGGED_COLUMN_NAMES.map do |column|
           ::Metka::QueryBuilder.new.call(model, column, parsed_tag_list, options).to_sql
-        end.join(' OR ')
+        end.join(" #{options[:join_operator]} ")
 
         model.where(request_sql)
       }
 
       tagged_without = ->(model, tags, **options) {
         parsed_tag_list = parser.call(tags)
-        return model.none if parsed_tag_list.empty?
 
         request_sql = TAGGED_COLUMN_NAMES.map do |column|
           ::Metka::QueryBuilder.new.call(model, column, parsed_tag_list, options).to_sql
-        end.join(' AND ')
+        end.join(" #{options[:join_operator]} ")
 
         model.where.not(request_sql)
       }
@@ -58,10 +57,30 @@ module Metka
         scope "with_any_#{column}", ->(tags) { search_by_tags.call(self, tags, column, { any: true }) }
         scope "without_all_#{column}", ->(tags) { search_by_tags.call(self, tags, column, { exclude_all: true, without: true }) }
         scope "without_any_#{column}", ->(tags) { search_by_tags.call(self, tags, column, { exclude_any: true, without: true }) }
-        scope :tagged_with_any, ->(tags) { tagged_with.call(self, tags, any: true )} unless self.respond_to?(:tagged_with_any)
-        scope :tagged_with_all, ->(tags) { tagged_with.call(self, tags )} unless self.respond_to?(:tagged_with_all)
-        scope :tagged_without_all, ->(tags) { tagged_without.call(self, tags, exclude_all: true)} unless self.respond_to?(:tagged_without_all)
-        scope :tagged_without_any, ->(tags) { tagged_without.call(self, tags, exclude_any: true)} unless self.respond_to?(:tagged_without_any)
+
+        unless self.respond_to?(:tagged_with_any)
+          scope :tagged_with_any, ->(tags='', join_operator: 'OR') {
+           tagged_with.call(self, tags, any: true, join_operator: join_operator )
+         }
+        end
+
+        unless self.respond_to?(:tagged_with_all)
+          scope :tagged_with_all, ->(tags='', join_operator: 'OR') {
+            tagged_with.call(self, tags, join_operator: join_operator )
+          }
+        end
+
+        unless self.respond_to?(:tagged_without_all)
+          scope :tagged_without_all, ->(tags='', join_operator: 'OR') {
+            tagged_without.call(self, tags, exclude_all: true, join_operator: join_operator)
+          }
+        end
+
+        unless self.respond_to?(:tagged_without_any)
+          scope :tagged_without_any, ->(tags='', join_operator: 'OR' ) {
+            tagged_without.call(self, tags, exclude_any: true, join_operator: join_operator)
+          }
+        end
       end
 
 
