@@ -4,7 +4,7 @@
 
 # Metka
 
-Rails gem to manage tags with SonggreSQL array columns.
+Rails gem to manage tags with PostgreSQL array columns.
 
 ## Installation
 
