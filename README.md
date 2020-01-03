@@ -47,7 +47,7 @@ class Song < ActiveRecord::Base
   include Metka::Model(column: 'genres')
 end
 
-@song = Song.new(title: 'Migrate tags in Rails to SonggreSQL')
+@song = Song.new(title: 'Migrate tags in Rails to PostgreSQL')
 @song.tag_list = 'top, chill'
 @song.genre_list = 'rock, jazz, pop'
 @song.save
@@ -58,7 +58,7 @@ end
 ### .with_all_#{column_name}
 ```ruby
 Song.with_all_tags('top')
-=> [#<Song id: 1, title: 'Migrate tags in Rails to SonggreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
+=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
 
 Song.with_all_tags('top, 1990')
 => []
@@ -67,22 +67,22 @@ Song.with_all_tags('')
 => []
 
 Song.with_all_genres('rock')
-=> [#<Song id: 1, title: 'Migrate tags in Rails to SonggreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
+=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
 ```
 
 ### .with_any_#{column_name}
 ```ruby
 Song.with_any_tags('chill')
-=> [#<Song id: 1, title: 'Migrate tags in Rails to SonggreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
+=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
 
 Song.with_any_tags('chill, 1980')
-=> [#<Song id: 1, title: 'Migrate tags in Rails to SonggreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
+=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
 
 Song.with_any_tags('')
 => []
 
 Song.with_any_genres('rock, rap')
-=> [#<Song id: 1, title: 'Migrate tags in Rails to SonggreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
+=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
 ```
 ### .without_all_#{column_name}
 ```ruby
@@ -90,13 +90,13 @@ Song.without_all_tags('top')
 => []
 
 Song.without_all_tags('top, 1990')
-=> [#<Song id: 1, title: 'Migrate tags in Rails to SonggreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
+=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
 
 Song.without_all_tags('')
-=> [#<Song id: 1, title: 'Migrate tags in Rails to SonggreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
+=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
 
 Song.without_all_genres('rock, pop')
-=> [#<Song id: 1, title: 'Migrate tags in Rails to SonggreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
+=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
 
 Song.without_all_genres('rock')
 => []
@@ -108,13 +108,13 @@ Song.without_any_tags('top, 1990')
 => []
 
 Song.without_any_tags('1990, 1980')
-=> [#<Song id: 1, title: 'Migrate tags in Rails to SonggreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
+=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
 
 Song.without_any_genres('rock, pop')
 => []
 
 Song.without_any_genres('')
-=> [#<Song id: 1, title: 'Migrate tags in Rails to SonggreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
+=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
 ```
 
 ## Custom delimiter
