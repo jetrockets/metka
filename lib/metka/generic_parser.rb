@@ -37,8 +37,9 @@ module Metka
     end
 
     def joined_delimiter
-      delimeter = Metka.config.delimiter
-      delimeter.is_a?(Array) ? delimeter.join('|') : delimeter
+      [Metka.config.delimiter].flatten
+        .map { |delimeter| Regexp.escape(delimeter) }
+        .join('|')
     end
 
     def single_quote_pattern

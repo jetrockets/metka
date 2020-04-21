@@ -43,8 +43,12 @@ end
 
 ```ruby
 class Song < ActiveRecord::Base
-  include Metka::Model(column: 'tags')
-  include Metka::Model(column: 'genres')
+  include Metka::Model
+
+  has_metka do
+    column :tags
+    column :genres
+  end
 end
 
 @song = Song.new(title: 'Migrate tags in Rails to PostgreSQL')
@@ -121,7 +125,7 @@ Song.without_any_genres('')
 By default, a comma is used as a delimiter to create tags from a string.
 You can make your own custom separator:
 ```ruby
-Metka.config.delimiter = [',', ' ', '\|']
+Metka.config.delimiter = [',', ' ', '|']
 parsed_data = Metka::GenericParser.instance.call('cool, data|I have')
 parsed_data.to_a
 =>['cool', 'data', 'I', 'have']
@@ -139,8 +143,12 @@ By default we use [generic_parser](lib/metka/generic_parser.rb "generic_parser")
 If you want use your custom parser you can do:
 ```ruby
 class Song < ActiveRecord::Base
-  include Metka::Model(column: 'tags', parser: Your::Custom::Parser.instance)
-  include Metka::Model(column: 'genres')
+  include Metka::Model
+
+  has_metka do
+    column :tags, parser: Your::Custom::Parser.instance
+    column :genres
+  end
 end
 ```
 Custom parser must be a singleton class that has a `.call` method that accepts the tag string
