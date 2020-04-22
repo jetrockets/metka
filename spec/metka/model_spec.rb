@@ -6,8 +6,8 @@ RSpec.describe Metka::Model, :db do
   let!(:tag_list) { 'ruby, rails, crystal' }
   let!(:material_list) { 'steel, wood, rock' }
   let!(:user) { User.create(name: Faker::Name.name) }
-  let!(:view_post) { ViewPost.new(user_id: user.id)}
-  let!(:view_post_two) { ViewPost.new(user_id: user.id)}
+  let!(:view_post) { ViewPost.new(user_id: user.id) }
+  let!(:view_post_two) { ViewPost.new(user_id: user.id) }
 
   before do
     view_post.tag_list = tag_list
@@ -42,7 +42,7 @@ RSpec.describe Metka::Model, :db do
     end
 
     describe '.with_any' do
-      let(:new_tag_list) { tag_list + 'Go'}
+      let(:new_tag_list) { tag_list + 'Go' }
 
       it 'should respond to .with_any method' do
         expect(ViewPost).to respond_to(:with_any_tags)
@@ -88,6 +88,30 @@ RSpec.describe Metka::Model, :db do
         expect(ViewPost.without_any_tags(view_post_two.tag_list.to_a << 'Clojure').first).to eq(view_post)
       end
     end
+
+    describe '.tagged_with' do
+      specify do
+        view_post.tags << 'php'
+        view_post.save!
+
+        expect(ViewPost.tagged_with(%w[php ruby]).count).to eq(1)
+      end
+
+      specify do
+        expect(ViewPost.tagged_with(%w[php cobol], any: true).count).to eq(1)
+      end
+
+      specify do
+        expect(ViewPost.tagged_with(%w[php], exclude: true).count).to eq(1)
+      end
+
+      specify do
+        view_post.tags << 'php'
+        view_post.save!
+
+        expect(ViewPost.tagged_with(%w[php ruby], match_all: true).count).to eq(1)
+      end
+    end
   end
 
   context 'when as tags use materials' do
@@ -114,7 +138,7 @@ RSpec.describe Metka::Model, :db do
     end
 
     describe '.with_any_materials' do
-      let(:new_material_list) { material_list + 'iron'}
+      let(:new_material_list) { material_list + 'iron' }
 
       it 'should respond to .with_any_materials' do
         expect(ViewPost).to respond_to(:with_any_materials)
