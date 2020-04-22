@@ -3,41 +3,28 @@
 require 'spec_helper'
 
 RSpec.describe Metka::Model, :db do
-  let!(:user) { User.create(name: Faker::Name.name) }
+  let(:user) { User.create(name: Faker::Name.name) }
 
-  let!(:first_post)  { ViewPost.create(user_id: user.id, tags: ['ruby', 'elixir', 'crystal'], materials: ['ruby', 'wood'])}
-  let!(:second_post) { ViewPost.create(user_id: user.id, tags: ['ruby', 'rails', 'react'], materials: ['wood', 'stone'])}
-  let!(:third_post)  { ViewPost.create(user_id: user.id, tags: ['php', 'yii2', 'angular'], materials: [])}
-
-  it "should respond to .tagged_with_any" do
-    expect(ViewPost).to respond_to(:tagged_with_any)
+  before do
+    ViewPost.create(user_id: user.id, tags: ['ruby', 'elixir', 'crystal'], materials: ['ruby', 'wood'])
+    ViewPost.create(user_id: user.id, tags: ['ruby', 'rails', 'react'], materials: ['wood', 'stone'])
+    ViewPost.create(user_id: user.id, tags: ['php', 'yii2', 'angular'], materials: [])
   end
 
-  context 'when use default join operator' do
-    it 'should return collection with tag ruby' do
-      expect(ViewPost.tagged_with_any('ruby').size).to eq(2)
-    end
+  describe '.tagged_with' do
+    context 'with :any option turned ON' do
+      context 'when use default join operator' do
+        it 'returns collection where any of the specified tags appear' do
+          expect(ViewPost.tagged_with('elixir, rails, ruby', any: true).size).to eq(2)
+        end
+      end
 
-    it 'should return collection with tag php' do
-      expect(ViewPost.tagged_with_any('php').size).to eq(1)
-    end
-
-    it 'should return collection with tags elixir, rails, ruby' do
-      expect(ViewPost.tagged_with_any('elixir, rails, ruby').size).to eq(2)
-    end
-  end
-
-  context 'when use AND as join operator' do
-    it 'should return collection with tag ruby' do
-      expect(ViewPost.tagged_with_any('ruby', join_operator: 'and').size).to eq(1)
-    end
-
-    it 'should return collection with tag php' do
-      expect(ViewPost.tagged_with_any('php', join_operator: 'and').size).to eq(0)
-    end
-
-    it 'should return collection with tags elixir, rails, ruby' do
-      expect(ViewPost.tagged_with_any('elixir, rails, ruby', join_operator: 'and').size).to eq(1)
+      context 'when use AND as join operator' do
+        it 'returns collection where any of the specified tags appear in both tag columns' do
+          expect(ViewPost.tagged_with(['ruby', 'rails'], join_operator: 'and', any: true).size).to eq(1)
+          expect(ViewPost.tagged_with('php', join_operator: 'and', any: true).size).to eq(0)
+        end
+      end
     end
   end
 end

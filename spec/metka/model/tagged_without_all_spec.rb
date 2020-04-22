@@ -3,57 +3,49 @@
 require 'spec_helper'
 
 RSpec.describe Metka::Model, :db do
-  let!(:user) { User.create(name: Faker::Name.name) }
+  let(:user) { User.create(name: Faker::Name.name) }
 
-  let!(:first_post)  { ViewPost.create(user_id: user.id, tags: ['ruby', 'elixir', 'crystal'], materials: ['ruby', 'wood'])}
-  let!(:second_post) { ViewPost.create(user_id: user.id, tags: ['ruby', 'rails', 'react'], materials: ['wood', 'stone'])}
-  let!(:third_post)  { ViewPost.create(user_id: user.id, tags: ['php', 'yii2', 'angular'], materials: [])}
-
-  it "should respond to .tagged_with_all" do
-    expect(ViewPost).to respond_to(:tagged_with_all)
+  before do
+    ViewPost.create(user_id: user.id, tags: ['ruby', 'elixir', 'crystal'], materials: ['ruby', 'wood'])
+    ViewPost.create(user_id: user.id, tags: ['ruby', 'rails', 'react'], materials: ['wood', 'stone'])
+    ViewPost.create(user_id: user.id, tags: ['php', 'yii2', 'angular'], materials: [])
   end
 
-  context 'when use default join operator' do
-    it 'should return collection without tag ruby' do
-      view_posts = ViewPost.tagged_without_all('ruby')
+  describe '.tagged_with' do
+    context 'when use default join operator' do
+      it 'returns collection where provided tag is not present in either tags column' do
+        expect(ViewPost.tagged_without_all('ruby').size).to eq(1)
+        expect(ViewPost.tagged_without_all('stone').size).to eq(2)
+      end
 
-      expect(view_posts.size).to eq(1)
-      expect(view_posts.first).to eq(third_post)
+      it 'should return full collection if params empty' do
+        expect(ViewPost.tagged_without_all('').size).to eq(3)
+        expect(ViewPost.tagged_without_all(nil).size).to eq(3)
+        expect(ViewPost.tagged_without_all().size).to eq(3)
+        expect(ViewPost.tagged_without_all([]).size).to eq(3)
+      end
+
+      it 'should return collection' do
+        expect(ViewPost.tagged_without_all('ruby, crystal, wood').size).to eq(3)
+      end
     end
 
-    it 'should return collection without tag stone' do
-      view_posts = ViewPost.tagged_without_all('stone')
+    context 'when use AND as join operator' do
+      it 'should return collection without tag ruby' do
+        view_posts = ViewPost.tagged_without_all('ruby', join_operator: 'and')
 
-      expect(view_posts.size).to eq(2)
-    end
+        expect(view_posts.size).to eq(2)
+      end
 
-    it 'should return full collection if params empty' do
-      expect(ViewPost.tagged_without_all('').size).to eq(3)
-      expect(ViewPost.tagged_without_all(nil).size).to eq(3)
-      expect(ViewPost.tagged_without_all().size).to eq(3)
-      expect(ViewPost.tagged_without_all([]).size).to eq(3)
-    end
+      it 'should return collection without tag php' do
+        view_posts = ViewPost.tagged_without_all('php', join_operator: 'and')
 
-    it 'should return collection' do
-      expect(ViewPost.tagged_without_all('ruby, crystal, wood').size).to eq(3)
-    end
-  end
+        expect(view_posts.size).to eq(3)
+      end
 
-  context 'when use AND as join operator' do
-    it 'should return collection without tag ruby' do
-      view_posts = ViewPost.tagged_without_all('ruby', join_operator: 'and')
-
-      expect(view_posts.size).to eq(2)
-    end
-
-    it 'should return collection without tag php' do
-      view_posts = ViewPost.tagged_without_all('php', join_operator: 'and')
-
-      expect(view_posts.size).to eq(3)
-    end
-
-    it 'should return collection' do
-      expect(ViewPost.tagged_without_all('ruby, crystal, wood', join_operator: 'and').size).to eq(3)
+      it 'should return collection' do
+        expect(ViewPost.tagged_without_all('ruby, crystal, wood', join_operator: 'and').size).to eq(3)
+      end
     end
   end
 end

@@ -34,7 +34,7 @@ module Metka
       # @param options [Hash] options
       #   @option :join_operator ['AND', 'OR']
       # @returns ViewPost::ActiveRecord_Relation
-      tagged_with = ->(model, tags, **options) {
+      tagged_with_lambda = ->(model, tags, **options) {
         parsed_tag_list = parser.call(tags)
         return model.none if parsed_tag_list.empty?
 
@@ -61,18 +61,6 @@ module Metka
         scope "without_all_#{column}", ->(tags) { search_by_tags.call(self, tags, column, {exclude_all: true, without: true}) }
         scope "without_any_#{column}", ->(tags) { search_by_tags.call(self, tags, column, {exclude_any: true, without: true}) }
 
-        unless respond_to?(:tagged_with_any)
-          scope :tagged_with_any, ->(tags = '', join_operator: 'OR') {
-                                    tagged_with.call(self, tags, any: true, join_operator: join_operator)
-                                  }
-        end
-
-        unless respond_to?(:tagged_with_all)
-          scope :tagged_with_all, ->(tags = '', join_operator: 'OR') {
-            tagged_with.call(self, tags, join_operator: join_operator)
-          }
-        end
-
         unless respond_to?(:tagged_without_all)
           scope :tagged_without_all, ->(tags = '', join_operator: 'OR') {
             tagged_without.call(self, tags, exclude_all: true, join_operator: join_operator)
@@ -86,8 +74,8 @@ module Metka
         end
 
         unless respond_to?(:tagged_with)
-          scope :tagged_with, ->(tags = '', options = {}) {
-            join_operator = 'OR'
+          scope :tagged_with, -> (tags = '', options = {}) {
+            options[:join_operator] ||= 'OR'
             options = {any: false}.merge(options)
 
             if options[:exclude] && options[:any]
@@ -96,7 +84,7 @@ module Metka
               options[:exclude_all] = true
             end
 
-            tagged_with.call(self, tags, join_operator: join_operator, **options)
+            tagged_with_lambda.call(self, tags, **options)
           }
         end
       end
