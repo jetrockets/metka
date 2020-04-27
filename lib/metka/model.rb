@@ -60,6 +60,15 @@ module Metka
         end
       end
 
+      base.define_singleton_method :metka_cloud do |*columns|
+        return [] if columns.blank?
+
+        prepared_unnest = columns.map { |column| "#{table_name}.#{column}" }.join(' || ')
+        subquery = all.select("UNNEST(#{prepared_unnest}) AS tag_name")
+
+        unscoped.from(subquery).group(:tag_name).pluck(:tag_name, 'COUNT(*) AS taggings_count')
+      end
+
       columns.each do |column|
         base.define_method(column.singularize + '_list=') do |v|
           write_attribute(column, parser.call(v).to_a)
@@ -67,7 +76,11 @@ module Metka
         end
 
         base.define_method(column.singularize + '_list') do
-          parser.call(public_send(column))
+          parser.call(send(column))
+        end
+
+        base.define_singleton_method :"#{column.singularize}_cloud" do
+          metka_cloud(column)
         end
       end
     end

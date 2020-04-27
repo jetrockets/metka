@@ -4,14 +4,17 @@ class CreateTaggedViewPostsView < ActiveRecord::Migration[5.0]
   def up
     execute <<-SQL
     CREATE OR REPLACE VIEW tagged_view_posts AS
-
-    SELECT UNNEST
-      ( tags ) AS tag_name,
-      COUNT ( * ) AS taggings_count
-    FROM
-      view_posts
-    GROUP BY
-      tag_name;
+      SELECT
+        tag_name,
+        COUNT ( * ) AS taggings_count
+      FROM (
+        SELECT UNNEST
+          ( tags ) AS tag_name
+        FROM
+          view_posts
+      ) subquery
+      GROUP BY
+        tag_name;
     SQL
   end
 

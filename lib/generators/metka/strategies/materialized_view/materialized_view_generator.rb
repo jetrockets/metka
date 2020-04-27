@@ -9,10 +9,15 @@ module Metka
       class MaterializedViewGenerator < ::Rails::Generators::Base # :nodoc:
         include Rails::Generators::Migration
 
+        DEFAULT_SOURCE_COLUMNS = ['tags'].freeze
+
         desc <<~LONGDESC
           Generates migration to implement view strategy for Metka
 
-          > $ rails g metka:strategies:materialized_view --source-table-name=NAME_OF_TABLE_WITH_TAGS
+          > $ rails g metka:strategies:materialized_view \
+          --source-table-name=NAME_OF_TABLE_WITH_TAGS \
+          --source-columns=NAME_OF_TAGGED_COLUMN_1 NAME_OF_TAGGED_COLUMN_2 \
+          --view-name=NAME_OF_VIEW
         LONGDESC
 
         source_root File.expand_path('templates', __dir__)
@@ -20,8 +25,11 @@ module Metka
         class_option :source_table_name, type: :string, required: true,
                                          desc: 'Name of the table that has a column with tags'
 
-        class_option :source_column_name, type: :string, default: 'tags',
-                                          desc: 'Name of the column with stored tags'
+        class_option :source_columns, type: :array, default: DEFAULT_SOURCE_COLUMNS,
+                                      desc: 'List of the tagged columns names'
+
+        class_option :view_name, type: :string,
+                                 desc: 'Custom name for the resulting view'
 
         def generate_migration
           migration_template 'migration.rb.erb', "db/migrate/#{migration_name}.rb"
@@ -32,12 +40,19 @@ module Metka
             options[:source_table_name]
           end
 
-          def source_column_name
-            options[:source_column_name]
+          def source_columns
+            options[:source_columns]
+          end
+
+          def source_columns_names
+            source_columns.join('_and_')
           end
 
           def view_name
-            "tagged_#{source_table_name}"
+            return options[:view_name] if options[:view_name]
+
+            columns_sequence = source_columns == DEFAULT_SOURCE_COLUMNS ? nil : "_with_#{source_columns_names}"
+            "tagged#{columns_sequence}_#{source_table_name}"
           end
 
           def migration_name

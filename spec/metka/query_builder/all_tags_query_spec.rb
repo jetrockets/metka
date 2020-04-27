@@ -3,7 +3,7 @@
 require 'spec_helper'
 
 RSpec.describe Metka::AllTagsQuery do
-  let!(:model) { ViewPost }
+  let!(:model) { Post }
   let!(:column_name) { 'tags' }
   let!(:tag_list) { ['ruby', 'rails'] }
 
@@ -22,7 +22,7 @@ RSpec.describe Metka::AllTagsQuery do
 
     it 'should return correct sql' do
       expect(klass.instance.call(model, column_name, tag_list).to_sql).to eq(
-        "CAST(\"view_posts\".\"tags\" AS text[]) @> CAST(ARRAY['ruby','rails'] AS text[])"
+        "CAST(\"posts\".\"tags\" AS text[]) @> CAST(ARRAY['ruby','rails'] AS text[])"
       )
     end
   end

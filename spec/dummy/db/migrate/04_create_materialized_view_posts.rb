@@ -1,10 +1,12 @@
-class CreateViewPosts < ActiveRecord::Migration[5.0]
+# frozen_string_literal: true
+
+class CreateMaterializedViewPosts < ActiveRecord::Migration[5.0]
   def change
-    create_table :view_posts do |t|
+    create_table :materialized_view_posts do |t|
       t.string  :title
       t.integer :user_id, null: false
       t.string  :tags, array: true
-      t.string  :materials, array: true
+
       t.timestamps
     end
   end

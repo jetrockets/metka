@@ -195,15 +195,35 @@ Custom parser must be a singleton class that has a `.call` method that accepts t
 
 There are several strategies to get tag statistics
 
-### View Strategy
+### ActiveRecord Strategy (Default)
 
-Data about taggings will be agregated in SQL View. The easiest way to implement but the most slow on SELECT.
+Data about taggings is accessible via class methods of your model with `Metka::Model` attached. You can calculate a cloud for a single tagged column or multiple columns, the latter case would return to you a sum of taggings from multiple tagged columns, that are provided as arguments, for each tag present. ActiveRecord Strategy is an easiest way to implement, since it wouldn't require any additional code, but it's the slowest one on SELECT.
 
-```bash
-rails g metka:strategies:view --source-table-name=NAME_OF_TABLE_WITH_TAGS
+```ruby
+class Book < ActiveRecord::Base
+  include Metka::Model(column: 'authors')
+  include Metka::Model(column: 'co_authors')
+end
+
+tag_cloud = Book.author_cloud
+=> [["L.N. Tolstoy", 3], ["F.M. Dostoevsky", 6]]
+genre_cloud = Book.co_author_cloud
+=> [["A.P. Chekhov", 5], ["N.V. Gogol", 8], ["L.N. Tolstoy", 2]]
+summary_cloud = Book.metka_cloud('authors', 'co_authors')
+=> [["L.N. Tolstoy", 5], ["F.M. Dostoevsky", 6], ["A.P. Chekhov", 5], ["N.V. Gogol", 8]]
 ```
 
-The code above will generate a migration that creates view to store aggregated data about tag in `NAME_OF_TABLE_WITH_TAGS` table.
+### View Strategy
+
+Data about taggings will be agregated in SQL View. Performance-wise that strategy has no benefits over ActiveRecord Strategy, but if you need to store tags aggregations in a distinct model, that's an easiest way to achieve it.
+
+```bash
+rails g metka:strategies:view --source-table-name=NAME_OF_TABLE_WITH_TAGS [--source-columns=NAME_OF_COLUMN_1 NAME_OF_COLUMN_2] [--view-name=NAME_OF_RESULTING_VIEW]
+```
+
+The code above will generate a migration that creates view with specified `NAME_OF_RESULTING_VIEW`, that would aggregate tags data from specified array of tagged columns [`NAME_OF_COLUMN_1`, `NAME_OF_COLUMN_2`, ...], that are present within specified table `NAME_OF_TABLE_WITH_TAGS`.
+If `source-columns` option is not provided, then `tags` column would be used as defaults. If array of multiple values would be provided to the option, then the aggregation would be made with the tags from multiple tagged columns, so if a single tag would be found within multiple tagged columns, the resulting aggregation inside the view would have a single row for that tag with a sum of it's occurences across all stated tagged columns.
+`view-name` option is also optional, it would just force the resulting view's name to the one of your choice. If it's not provided, then view name would be generated automatically, you could check it within generated migration.
 
 Lets take a look at real example. We have a `notes` table with `tags` column.
 
@@ -227,15 +247,18 @@ The result would be:
 class CreateTaggedNotesView < ActiveRecord::Migration[5.0]
   def up
     execute <<-SQL
-    CREATE OR REPLACE VIEW tagged_notes AS
-
-    SELECT UNNEST
-      ( tags ) AS tag_name,
-      COUNT ( * ) AS taggings_count
-    FROM
-      notes
-    GROUP BY
-      name;
+      CREATE OR REPLACE VIEW tagged_notes AS
+        SELECT
+          tag_name,
+          COUNT ( * ) AS taggings_count
+        FROM (
+          SELECT UNNEST
+            ( tags ) AS tag_name
+          FROM
+            view_posts
+        ) subquery
+        GROUP BY
+          tag_name;
     SQL
   end
 
@@ -261,33 +284,27 @@ Now you can create `TaggedNote` model and work with the view like you usually do
 
 ### Materialized View Strategy
 
-Similar to the strategy above, but the view will be Materialized and refreshed with the trigger
+Data about taggings will be aggregated in SQL Materialized View, that would be refreshed with the trigger on each change of the tagged column's data. Except for the another type of view being used, that strategy behaves the same way, as a View Strategy above.
 
 ```bash
-rails g metka:strategies:materialized_view --source-table-name=NAME_OF_TABLE_WITH_TAGS
+rails g metka:strategies:materialized_view --source-table-name=NAME_OF_TABLE_WITH_TAGS --source-columns=NAME_OF_COLUMN_1 NAME_OF_COLUMN_2 --view-name=NAME_OF_RESULTING_VIEW
 ```
 
-The code above will generate a migration that creates view to store aggregated data about tag in `NAME_OF_TABLE_WITH_TAGS` table.
+All of the options for that stategy's generation command are the same as for the View Strategy.
 
-Lets take a look at real example. We have a `notes` table with `tags` column.
+The migration template can be seen [here](spec/dummy/db/migrate/06_create_tagged_materialized_view_posts_materialized_view.rb "here")
 
-| Column | Type                | Default                           |
-|--------|---------------------|-----------------------------------|
-| id     | integer             | nextval('notes_id_seq'::regclass) |
-| body   | text                |                                   |
-| tags   | character varying[] | '{}'::character varying[]         |
+With the same `notes` table with `tags` column the resulting view would have the same two columns
 
-Now lets generate a migration.
+| tag_name | taggings_count |
+|----------|----------------|
+| Ruby     | 124056         |
+| React    | 30632          |
+| Rails    | 28696          |
+| Crystal  | 6566           |
+| Elixir   | 3475           |
 
-```bash
-rails g metka:strategies:materialized_view --source-table-name=notes
-```
-
-The migration code you can see [here](spec/dummy/db/migrate/05_create_tagged_materialized_view_Songs_materialized_view.rb "here")
-
-Now lets take a look at `tagged_notes` materialized view.
-
-Now you can create `TaggedNote` model and work with the view like you usually do with Rails models.
+And you can also create `TaggedNote` model to work with the view as with a Rails model.
 
 ### Table Strategy with Triggers
 
