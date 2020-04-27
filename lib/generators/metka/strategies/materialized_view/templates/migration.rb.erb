@@ -5,15 +5,18 @@ class <%= @migration_class_name %> < ActiveRecord::Migration<%= ActiveRecord::VE
     execute <<-SQL
     CREATE OR REPLACE FUNCTION metka_refresh_<%= view_name %>_materialized_view() RETURNS trigger LANGUAGE plpgsql AS $$
       BEGIN
-        IF TG_OP = 'INSERT' AND NEW.<%= source_column_name %> IS NOT NULL THEN
+        IF TG_OP = 'INSERT' AND
+           (<%= source_columns.map { |column| "NEW.#{column} IS NOT NULL" }.join(' OR ') %>) THEN
           REFRESH MATERIALIZED VIEW CONCURRENTLY <%= view_name %>;
         END IF;
 
-        IF TG_OP = 'UPDATE' AND OLD.<%= source_column_name %> != NEW.<%= source_column_name %> THEN
+        IF TG_OP = 'UPDATE' AND
+           (<%= source_columns.map { |column| "OLD.#{column} IS DISTINCT FROM NEW.#{column}" }.join(' OR ') %>) THEN
           REFRESH MATERIALIZED VIEW CONCURRENTLY <%= view_name %>;
         END IF;
 
-        IF TG_OP = 'DELETE' AND OLD.<%= source_column_name %> IS NOT NULL THEN
+        IF TG_OP = 'DELETE' AND
+           (<%= source_columns.map { |column| "OLD.#{column} IS NOT NULL" }.join(' OR ') %>) THEN
           REFRESH MATERIALIZED VIEW CONCURRENTLY <%= view_name %>;
         END IF;
         RETURN NEW;
@@ -21,17 +24,21 @@ class <%= @migration_class_name %> < ActiveRecord::Migration<%= ActiveRecord::VE
 
     DROP MATERIALIZED VIEW IF EXISTS <%= view_name %>;
     CREATE MATERIALIZED VIEW <%= view_name %> AS
-      SELECT UNNEST
-        ( <%= source_column_name %> ) AS <%= source_column_name.singularize %>_name,
-        COUNT ( * ) AS taggings_count
-      FROM
-        <%= source_table_name %>
+      SELECT
+        tag_name,
+        COUNT(*) AS taggings_count
+      FROM (
+        SELECT UNNEST
+          (<%= source_columns.join(' || ') %>) AS tag_name
+        FROM
+          <%= source_table_name %>
+      ) subquery
       GROUP BY
-        <%= source_column_name.singularize %>_name;
+        tag_name;
 
-    CREATE UNIQUE INDEX idx_<%= source_table_name %>_<%= source_column_name %> ON <%= view_name %>(<%= source_column_name.singularize %>_name);
+    CREATE UNIQUE INDEX idx_<%= source_table_name %>_<%= source_columns_names %> ON <%= view_name %>(tag_name);
 
-    CREATE TRIGGER metka_on_<%= source_table_name %>
+    CREATE TRIGGER metka_on_<%= source_table_name %>_<%= source_columns_names %>
     AFTER UPDATE OR INSERT OR DELETE ON <%= source_table_name %> FOR EACH ROW
     EXECUTE PROCEDURE metka_refresh_<%= view_name %>_materialized_view();
     SQL
@@ -39,7 +46,7 @@ class <%= @migration_class_name %> < ActiveRecord::Migration<%= ActiveRecord::VE
 
   def down
     execute <<-SQL
-      DROP TRIGGER IF EXISTS metka_on_<%= source_table_name %> ON <%= source_table_name %>;
+      DROP TRIGGER IF EXISTS metka_on_<%= source_table_name %>_<%= source_columns_names %> ON <%= source_table_name %>;
       DROP FUNCTION IF EXISTS metka_refresh_<%= view_name %>_materialized_view;
       DROP MATERIALIZED VIEW IF EXISTS <%= view_name %>;
     SQL

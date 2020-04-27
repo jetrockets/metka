@@ -4,14 +4,17 @@ class <%= @migration_class_name %> < ActiveRecord::Migration<%= ActiveRecord::VE
   def up
     execute <<-SQL
     CREATE OR REPLACE VIEW <%= view_name %> AS
-
-    SELECT UNNEST
-      ( <%= source_column_name %> ) AS <%= source_column_name.singularize %>_name,
-      COUNT ( * ) AS taggings_count
-    FROM
-      <%= source_table_name %>
-    GROUP BY
-      <%= source_column_name.singularize %>_name;
+      SELECT
+        tag_name,
+        COUNT(*) AS taggings_count
+      FROM (
+        SELECT UNNEST
+          (<%= source_columns.join(' || ') %>) AS tag_name
+        FROM
+          <%= source_table_name %>
+      ) subquery
+      GROUP BY
+        tag_name;
     SQL
   end
 

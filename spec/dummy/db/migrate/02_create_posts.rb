@@ -1,6 +1,8 @@
-class CreateViewPosts < ActiveRecord::Migration[5.0]
+# frozen_string_literal: true
+
+class CreatePosts < ActiveRecord::Migration[5.0]
   def change
-    create_table :view_posts do |t|
+    create_table :posts do |t|
       t.string  :title
       t.integer :user_id, null: false
       t.string  :tags, array: true

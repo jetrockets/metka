@@ -42,13 +42,6 @@ module Metka
       }
 
       base.class_eval do
-        columns.each do |column|
-          scope "with_all_#{column}",    ->(tags) { tagged_with(tags, on: [ column ]) }
-          scope "with_any_#{column}",    ->(tags) { tagged_with(tags, on: [ column ], any: true) }
-          scope "without_all_#{column}", ->(tags) { tagged_with(tags, on: [ column ], exclude: true) }
-          scope "without_any_#{column}", ->(tags) { tagged_with(tags, on: [ column ], any: true, exclude: true) }
-        end
-
         unless respond_to?(:tagged_with)
           scope :tagged_with, ->(tags = '', options = {}) {
             options[:join_operator] ||= ::Metka::OR
@@ -58,16 +51,34 @@ module Metka
             tagged_with_lambda.call(self, tags, **options)
           }
         end
-      end
 
-      columns.each do |column|
-        base.define_method(column.singularize + '_list=') do |v|
-          write_attribute(column, parser.call(v).to_a)
-          write_attribute(column, nil) if send(column).empty?
-        end
+        columns.each do |column|
+          scope "with_all_#{column}",    ->(tags) { tagged_with(tags, on: [ column ]) }
+          scope "with_any_#{column}",    ->(tags) { tagged_with(tags, on: [ column ], any: true) }
+          scope "without_all_#{column}", ->(tags) { tagged_with(tags, on: [ column ], exclude: true) }
+          scope "without_any_#{column}", ->(tags) { tagged_with(tags, on: [ column ], any: true, exclude: true) }
 
-        base.define_method(column.singularize + '_list') do
-          parser.call(send(column))
+          base.define_singleton_method :"#{column.singularize}_cloud" do
+            metka_cloud(column)
+          end
+
+          base.define_singleton_method :metka_cloud do |*columns|
+            return [] if columns.blank?
+
+            prepared_unnest = columns.map { |column| "#{table_name}.#{column}" }.join(' || ')
+            subquery = all.select("UNNEST(#{prepared_unnest}) AS tag_name")
+
+            unscoped.from(subquery).group(:tag_name).pluck(:tag_name, 'COUNT(*) AS taggings_count')
+          end
+
+          base.define_method(column.singularize + '_list=') do |v|
+            write_attribute(column, parser.call(v).to_a)
+            write_attribute(column, nil) if send(column).empty?
+          end
+
+          base.define_method(column.singularize + '_list') do
+            parser.call(send(column))
+          end
         end
       end
     end

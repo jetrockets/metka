@@ -9,7 +9,7 @@ class CreateTaggedMaterializedViewPostsMaterializedView < ActiveRecord::Migratio
           REFRESH MATERIALIZED VIEW CONCURRENTLY tagged_materialized_view_posts;
         END IF;
 
-        IF TG_OP = 'UPDATE' AND OLD.tags != NEW.tags THEN
+        IF TG_OP = 'UPDATE' AND OLD.tags IS DISTINCT FROM NEW.tags THEN
           REFRESH MATERIALIZED VIEW CONCURRENTLY tagged_materialized_view_posts;
         END IF;
 
@@ -21,15 +21,19 @@ class CreateTaggedMaterializedViewPostsMaterializedView < ActiveRecord::Migratio
 
     DROP MATERIALIZED VIEW IF EXISTS tagged_materialized_view_posts;
     CREATE MATERIALIZED VIEW tagged_materialized_view_posts AS
-      SELECT UNNEST
-        ( tags ) AS tag_name,
+      SELECT
+        tag_name,
         COUNT ( * ) AS taggings_count
-      FROM
-        materialized_view_posts
+      FROM (
+        SELECT UNNEST
+          ( tags ) AS tag_name
+        FROM
+          materialized_view_posts
+      ) subquery
       GROUP BY
         tag_name;
 
-    CREATE UNIQUE INDEX idx_materialized_view_posts_tags ON tagged_materialized_view_posts(tag_name);
+    CREATE UNIQUE INDEX idx_materialized_view_posts_tag_name ON tagged_materialized_view_posts(tag_name);
 
     CREATE TRIGGER metka_on_materialized_view_posts
     AFTER UPDATE OR INSERT OR DELETE ON materialized_view_posts FOR EACH ROW
