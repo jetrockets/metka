@@ -25,7 +25,7 @@ RSpec.describe Metka::GenericParser do
     end
 
     it 'should separate tags by delimiters' do
-      Metka.config.delimiter = [',', ' ', '\|']
+      Metka.config.delimiter = [',', ' ', '|']
       parsed_data = subject.call('cool, data|I have')
       expect(parsed_data.to_a).to eq(%w[cool data I have])
     end
@@ -37,7 +37,7 @@ RSpec.describe Metka::GenericParser do
     end
 
     it 'should escape single quote' do
-      Metka.config.delimiter = [',', ' ', '\|']
+      Metka.config.delimiter = [',', ' ', '|']
       parsed_data = subject.call("'I have'|cool, data")
 
       expect(parsed_data.to_a).to eq(['I have', 'cool', 'data'])
