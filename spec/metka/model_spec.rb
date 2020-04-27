@@ -4,7 +4,7 @@ require 'spec_helper'
 
 RSpec.describe Metka::Model, :db do
   let!(:tag_list) { 'ruby, rails, crystal' }
-  let!(:material_list) { 'steel, wood, rock' }
+  let!(:material_list) { 'steel | wood | rock' }
   let!(:user) { User.create(name: Faker::Name.name) }
   let!(:view_post) { ViewPost.new(user_id: user.id)}
   let!(:view_post_two) { ViewPost.new(user_id: user.id)}
@@ -98,8 +98,8 @@ RSpec.describe Metka::Model, :db do
 
       it 'should be able to find by material' do
         expect(ViewPost.with_all_materials(material_list)).to be_present
-        expect(ViewPost.with_all_materials(material_list.split(', ').first)).to be_present
-        expect(ViewPost.with_all_materials(material_list.split(', ').last)).to be_present
+        expect(ViewPost.with_all_materials(material_list.split(' | ').first)).to be_present
+        expect(ViewPost.with_all_materials(material_list.split(' | ').last)).to be_present
         expect(ViewPost.with_all_materials(material_list).first).to eq(view_post)
       end
 
@@ -108,13 +108,13 @@ RSpec.describe Metka::Model, :db do
       end
 
       it 'should return an empty scope for unused materials' do
-        finding_materials = [material_list.split(', ').first, 'PHP']
+        finding_materials = [material_list.split(' | ').first, 'PHP']
         expect(ViewPost.with_all_materials(finding_materials)).to be_empty
       end
     end
 
     describe '.with_any_materials' do
-      let(:new_material_list) { material_list + 'iron'}
+      let(:new_material_list) { material_list + ' | iron'}
 
       it 'should respond to .with_any_materials' do
         expect(ViewPost).to respond_to(:with_any_materials)
@@ -122,12 +122,12 @@ RSpec.describe Metka::Model, :db do
 
       it 'should be able to find by material' do
         expect(ViewPost.with_any_materials(new_material_list)).to be_present
-        expect(ViewPost.with_any_materials(new_material_list.split(', ').first)).to be_present
+        expect(ViewPost.with_any_materials(new_material_list.split(' | ').first)).to be_present
         expect(ViewPost.with_any_materials(new_material_list).first).to eq(view_post)
       end
 
       it 'should return an empty scope for unused tags' do
-        expect(ViewPost.with_any_materials(new_material_list.split(', ').last)).to be_empty
+        expect(ViewPost.with_any_materials(new_material_list.split(' | ').last)).to be_empty
       end
     end
   end
