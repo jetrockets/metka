@@ -1,6 +1,11 @@
 # frozen_string_literal: true
+
+require 'arel'
+
 module Metka
   TAGGED_COLUMN_NAMES = []
+  OR = Arel::Nodes::Or
+  AND = Arel::Nodes::And
 
   def self.Model(column:, **options)
     TAGGED_COLUMN_NAMES << column unless TAGGED_COLUMN_NAMES.include?(column)
@@ -21,12 +26,7 @@ module Metka
 
       search_by_tags = ->(model, tags, column, **options) {
         parsed_tag_list = parser.call(tags)
-        if options[:without].present?
-          model.where.not(::Metka::QueryBuilder.new.call(model, column, parsed_tag_list, options))
-        else
-          return model.none if parsed_tag_list.empty?
-          model.where(::Metka::QueryBuilder.new.call(model, column, parsed_tag_list, options))
-        end
+        model.where(::Metka::QueryBuilder.new.call(model, column, parsed_tag_list, options))
       }
 
       # @param model [ActiveRecord::Base] model on which to execute search
@@ -36,53 +36,35 @@ module Metka
       # @returns ViewPost::ActiveRecord_Relation
       tagged_with_lambda = ->(model, tags, **options) {
         parsed_tag_list = parser.call(tags)
-        return model.none if parsed_tag_list.empty?
 
-        request_sql = TAGGED_COLUMN_NAMES.map do |column|
-          ::Metka::QueryBuilder.new.call(model, column, parsed_tag_list, options).to_sql
-        end.join(" #{options[:join_operator]} ")
-
-        model.where(request_sql)
-      }
-
-      tagged_without = ->(model, tags, **options) {
-        parsed_tag_list = parser.call(tags)
-
-        request_sql = TAGGED_COLUMN_NAMES.map do |column|
-          ::Metka::QueryBuilder.new.call(model, column, parsed_tag_list, options).to_sql
-        end.join(" #{options[:join_operator]} ")
-
-        model.where.not(request_sql)
+        request = ::Metka::QueryBuilder.new.call(model,
+          ::Metka::TAGGED_COLUMN_NAMES,
+          parsed_tag_list, options)
+        model.where(request)
       }
 
       base.class_eval do
         scope "with_all_#{column}", ->(tags) { search_by_tags.call(self, tags, column) }
         scope "with_any_#{column}", ->(tags) { search_by_tags.call(self, tags, column, {any: true}) }
-        scope "without_all_#{column}", ->(tags) { search_by_tags.call(self, tags, column, {exclude_all: true, without: true}) }
-        scope "without_any_#{column}", ->(tags) { search_by_tags.call(self, tags, column, {exclude_any: true, without: true}) }
+        scope "without_all_#{column}", ->(tags) { search_by_tags.call(self, tags, column, {exclude: true}) }
+        scope "without_any_#{column}", ->(tags) { search_by_tags.call(self, tags, column, {any: true, exclude: true}) }
 
         unless respond_to?(:tagged_without_all)
-          scope :tagged_without_all, ->(tags = '', join_operator: 'OR') {
-            tagged_without.call(self, tags, exclude_all: true, join_operator: join_operator)
+          scope :tagged_without_all, ->(tags = '', join_operator: ::Metka::OR) {
+            tagged_with(tags, exclude: true, join_operator: join_operator)
           }
         end
 
         unless respond_to?(:tagged_without_any)
-          scope :tagged_without_any, ->(tags = '', join_operator: 'OR') {
-            tagged_without.call(self, tags, exclude_any: true, join_operator: join_operator)
+          scope :tagged_without_any, ->(tags = '', join_operator: ::Metka::OR) {
+            tagged_with(tags, exclude: true, any: true, join_operator: join_operator)
           }
         end
 
         unless respond_to?(:tagged_with)
-          scope :tagged_with, -> (tags = '', options = {}) {
-            options[:join_operator] ||= 'OR'
+          scope :tagged_with, ->(tags = '', options = {}) {
+            options[:join_operator] ||= ::Metka::OR
             options = {any: false}.merge(options)
-
-            if options[:exclude] && options[:any]
-              options[:exclude_any] = true
-            elsif options[:exclude] && !options[:any]
-              options[:exclude_all] = true
-            end
 
             tagged_with_lambda.call(self, tags, **options)
           }

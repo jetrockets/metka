@@ -21,7 +21,7 @@ RSpec.describe Metka::Model, :db do
       it 'should return full collection if params empty' do
         expect(ViewPost.tagged_without_all('').size).to eq(3)
         expect(ViewPost.tagged_without_all(nil).size).to eq(3)
-        expect(ViewPost.tagged_without_all().size).to eq(3)
+        expect(ViewPost.tagged_without_all.size).to eq(3)
         expect(ViewPost.tagged_without_all([]).size).to eq(3)
       end
 
@@ -32,19 +32,19 @@ RSpec.describe Metka::Model, :db do
 
     context 'when use AND as join operator' do
       it 'should return collection without tag ruby' do
-        view_posts = ViewPost.tagged_without_all('ruby', join_operator: 'and')
+        view_posts = ViewPost.tagged_without_all('ruby', join_operator: Metka::AND)
 
         expect(view_posts.size).to eq(2)
       end
 
       it 'should return collection without tag php' do
-        view_posts = ViewPost.tagged_without_all('php', join_operator: 'and')
+        view_posts = ViewPost.tagged_without_all('php', join_operator: Metka::AND)
 
         expect(view_posts.size).to eq(3)
       end
 
       it 'should return collection' do
-        expect(ViewPost.tagged_without_all('ruby, crystal, wood', join_operator: 'and').size).to eq(3)
+        expect(ViewPost.tagged_without_all('ruby, crystal, wood', join_operator: Metka::AND).size).to eq(3)
       end
     end
   end

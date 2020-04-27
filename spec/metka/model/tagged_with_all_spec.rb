@@ -20,8 +20,8 @@ RSpec.describe Metka::Model, :db do
 
     context 'when use AND as join operator' do
       it 'returns collection where all provided tags are present in every of the tags columns' do
-        expect(ViewPost.tagged_with('ruby', join_operator: 'and').size).to eq(1)
-        expect(ViewPost.tagged_with('php', join_operator: 'and').size).to eq(0)
+        expect(ViewPost.tagged_with('ruby', join_operator: ::Metka::AND).size).to eq(1)
+        expect(ViewPost.tagged_with('php', join_operator: ::Metka::AND).size).to eq(0)
       end
     end
   end
