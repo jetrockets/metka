@@ -1,5 +1,4 @@
 # frozen_string_literal: true
-require 'pry'
 
 require 'arel'
 require_relative 'query_builder/base_query'

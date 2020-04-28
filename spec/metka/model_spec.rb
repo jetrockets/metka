@@ -65,7 +65,9 @@ RSpec.describe Metka::Model, :db do
       end
 
       it 'should return two object if tags empty' do
-        expect(ViewPost.without_all_tags('').size).to eq(2)
+        ['', nil, []].each do |tags|
+          expect(ViewPost.without_all_tags(tags).size).to eq(0)
+        end
       end
 
       it 'should return post' do
@@ -95,21 +97,34 @@ RSpec.describe Metka::Model, :db do
         view_post.save!
 
         expect(ViewPost.tagged_with(%w[php ruby]).count).to eq(1)
+        expect(ViewPost.tagged_with(%w[php ruby]).first).to eq(view_post)
       end
 
       specify do
         expect(ViewPost.tagged_with(%w[php cobol], any: true).count).to eq(1)
+        expect(ViewPost.tagged_with(%w[php cobol], any: true).first).to eq(view_post_two)
       end
 
       specify do
         expect(ViewPost.tagged_with(%w[php], exclude: true).count).to eq(1)
+        expect(ViewPost.tagged_with(%w[php], exclude: true).first).to eq(view_post)
       end
 
       specify do
         view_post.tags << 'php'
         view_post.save!
 
-        expect(ViewPost.tagged_with(%w[php ruby], match_all: true).count).to eq(1)
+        expect(ViewPost.tagged_with(%w[php ruby], any: false).count).to eq(1)
+        expect(ViewPost.tagged_with(%w[php ruby], any: false).first).to eq(view_post)
+      end
+
+      specify do
+        ['', nil, []].each do |tags|
+          expect(ViewPost.tagged_with(tags, any: false)).to eq(ViewPost.none)
+          expect(ViewPost.tagged_with(tags, any: true)).to eq(ViewPost.none)
+          expect(ViewPost.tagged_with(tags, exclude: true, any: true)).to eq(ViewPost.none)
+          expect(ViewPost.tagged_with(tags, exclude: true, any: false)).to eq(ViewPost.none)
+        end
       end
     end
   end

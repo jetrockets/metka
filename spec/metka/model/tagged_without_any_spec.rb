@@ -9,51 +9,46 @@ RSpec.describe Metka::Model, :db do
   let!(:second_post) { ViewPost.create(user_id: user.id, tags: ['ruby', 'rails', 'react'], materials: ['wood', 'stone']) }
   let!(:third_post) { ViewPost.create(user_id: user.id, tags: ['php', 'yii2', 'angular'], materials: []) }
 
-  it 'should respond to .tagged_without_any' do
-    expect(ViewPost).to respond_to(:tagged_without_any)
-  end
-
   context 'when use default join operator' do
     it 'should return collection without tag ruby' do
-      view_posts = ViewPost.tagged_without_any('ruby')
+      view_posts = ViewPost.tagged_with('ruby', exclude: true, any: true)
 
       expect(view_posts.size).to eq(1)
       expect(view_posts.first).to eq(third_post)
     end
 
     it 'should return collection without tag stone' do
-      view_posts = ViewPost.tagged_without_any('stone')
+      view_posts = ViewPost.tagged_with('stone', exclude: true, any: true)
 
       expect(view_posts.size).to eq(2)
     end
 
-    it 'should return full collection if params empty' do
-      expect(ViewPost.tagged_without_any('').size).to eq(3)
-      expect(ViewPost.tagged_without_any(nil).size).to eq(3)
-      expect(ViewPost.tagged_without_any.size).to eq(3)
-      expect(ViewPost.tagged_without_any([]).size).to eq(3)
+    it 'should return empty collection if params empty' do
+      ['', nil, []].each do |tags|
+        expect(ViewPost.tagged_with(tags, exclude: true, any: true)).to eq(ViewPost.none)
+      end
     end
 
     it 'should return collection' do
-      expect(ViewPost.tagged_without_any('ruby, crystal, wood').size).to eq(1)
+      expect(ViewPost.tagged_with('ruby, crystal, wood', exclude: true, any: true).size).to eq(1)
     end
   end
 
   context 'when use AND as join operator' do
     it 'should return collection without tag ruby' do
-      view_posts = ViewPost.tagged_without_any('ruby, wood, foo', join_operator: Metka::AND)
+      view_posts = ViewPost.tagged_with('ruby, wood, foo', exclude: true, any: true, join_operator: Metka::AND)
 
       expect(view_posts.size).to eq(1)
     end
 
     it 'should return collection without tag php' do
-      view_posts = ViewPost.tagged_without_any('php', join_operator: Metka::AND)
+      view_posts = ViewPost.tagged_with('php', exclude: true, any: true, join_operator: Metka::AND)
 
       expect(view_posts.size).to eq(3)
     end
 
     it 'should return collection' do
-      expect(ViewPost.tagged_without_any('ruby, crystal, wood', join_operator: Metka::AND).size).to eq(1)
+      expect(ViewPost.tagged_with('ruby, crystal, wood', exclude: true, any: true, join_operator: Metka::AND).size).to eq(1)
     end
   end
 end

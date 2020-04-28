@@ -26,16 +26,19 @@ module Metka
 
       search_by_tags = ->(model, tags, column, **options) {
         parsed_tag_list = parser.call(tags)
+        return model.none if parsed_tag_list.empty?
+
         model.where(::Metka::QueryBuilder.new.call(model, column, parsed_tag_list, options))
       }
 
       # @param model [ActiveRecord::Base] model on which to execute search
       # @param tags [Object] list of tags, representation depends on parser used
       # @param options [Hash] options
-      #   @option :join_operator ['AND', 'OR']
+      #   @option :join_operator [Metka::AND, Metka::OR]
       # @returns ViewPost::ActiveRecord_Relation
       tagged_with_lambda = ->(model, tags, **options) {
         parsed_tag_list = parser.call(tags)
+        return model.none if parsed_tag_list.empty?
 
         request = ::Metka::QueryBuilder.new.call(model,
           ::Metka::TAGGED_COLUMN_NAMES,
@@ -49,17 +52,6 @@ module Metka
         scope "without_all_#{column}", ->(tags) { search_by_tags.call(self, tags, column, {exclude: true}) }
         scope "without_any_#{column}", ->(tags) { search_by_tags.call(self, tags, column, {any: true, exclude: true}) }
 
-        unless respond_to?(:tagged_without_all)
-          scope :tagged_without_all, ->(tags = '', join_operator: ::Metka::OR) {
-            tagged_with(tags, exclude: true, join_operator: join_operator)
-          }
-        end
-
-        unless respond_to?(:tagged_without_any)
-          scope :tagged_without_any, ->(tags = '', join_operator: ::Metka::OR) {
-            tagged_with(tags, exclude: true, any: true, join_operator: join_operator)
-          }
-        end
 
         unless respond_to?(:tagged_with)
           scope :tagged_with, ->(tags = '', options = {}) {
