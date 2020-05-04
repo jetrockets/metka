@@ -10,16 +10,11 @@ module Metka
     def call(model, columns, tags, options)
       strategy = options_to_strategy(options)
 
-      query = case columns
-              when String, Symbol
-                build_query(strategy).(model, columns, tags)
-              when Enumerable
-                join(options[:join_operator]) do
-                  columns.map do |column|
-                    build_query(strategy).(model, column, tags)
-                  end
-                end
-              end
+      query = join(options[:join_operator]) do
+        columns.map do |column|
+          build_query(strategy, model, column, tags)
+        end
+      end
 
       if options[:exclude].present?
         Arel::Nodes::Not.new(query)
@@ -39,21 +34,23 @@ module Metka
     end
 
     def join(operator, &block)
+      nodes = block.call
+
       if operator == ::Metka::AND
-        join_and(block.call)
+        join_and(nodes)
       elsif operator == ::Metka::OR
-        join_or(block.call)
+        join_or(nodes)
       end
     end
 
-    # @param queries [Array<Arel::Node>, Arel::Node]
+    # @param nodes [Array<Arel::Node>, Arel::Node]
     # @return [Arel::Node]
-    def join_or(queries)
-      case queries
+    def join_or(nodes)
+      case nodes
       when ::Arel::Node
-        queries
+        nodes
       when Array
-        l, *r = queries
+        l, *r = nodes
         return l if r.empty?
 
         l.or(join_or(r))
@@ -61,19 +58,11 @@ module Metka
     end
 
     def join_and(queries)
-      case queries
-      when Arel::Node
-        queries
-      when Array
-        l, *r = queries
-        return l if r.empty?
-
-        l.and(join_and(r))
-      end
+      Arel::Nodes::And.new(queries)
     end
 
-    def build_query(strategy)
-      @build_query ||= ->(model, column, tags) { strategy.instance.call(model, column, tags) }.curry
+    def build_query(strategy, model, column, tags)
+      strategy.instance.call(model, column, tags)
     end
   end
 end

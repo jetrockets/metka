@@ -29,8 +29,7 @@ module Metka
       # @param tags [Object] list of tags, representation depends on parser used
       # @param options [Hash] options
       #   @option :join_operator [Metka::AND, Metka::OR]
-      #   @option :on [Array<String>, String] column name or list of column names
-      #                                       to include in query
+      #   @option :on [Array<String>] list of column names to include in query
       # @returns ViewPost::ActiveRecord_Relation
       tagged_with_lambda = ->(model, tags, **options) {
         cols = options.delete(:on)
