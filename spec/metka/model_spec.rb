@@ -121,6 +121,12 @@ RSpec.describe Metka::Model, :db do
       end
 
       specify do
+        expect(ViewPost.tagged_with('php', on: ['materials'])).to eq []
+        expect(ViewPost.tagged_with('ruby', on: ['tags']).count).to eq(1)
+        expect(ViewPost.tagged_with('ruby', on: ['tags']).first).to eq(view_post)
+      end
+
+      specify do
         ['', nil, []].each do |tags|
           expect(ViewPost.tagged_with(tags, any: false)).to eq(ViewPost.none)
           expect(ViewPost.tagged_with(tags, any: true)).to eq(ViewPost.none)
