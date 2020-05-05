@@ -207,9 +207,9 @@ end
 
 tag_cloud = Book.author_cloud
 => [["L.N. Tolstoy", 3], ["F.M. Dostoevsky", 6]]
-genre_cloud = Song.co_author_cloud
+genre_cloud = Book.co_author_cloud
 => [["A.P. Chekhov", 5], ["N.V. Gogol", 8], ["L.N. Tolstoy", 2]]
-summary_cloud = Song.metka_cloud('authors', 'co_authors')
+summary_cloud = Book.metka_cloud('authors', 'co_authors')
 => [["L.N. Tolstoy", 5], ["F.M. Dostoevsky", 6], ["A.P. Chekhov", 5], ["N.V. Gogol", 8]]
 ```
 
