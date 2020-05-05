@@ -4,7 +4,7 @@
 # You can find out more here: lib/generators/metka/strategies/materialized_view/materialized_view_generator.rb
 class MaterializedViewMultitagPost < ActiveRecord::Base
   include Metka::Model(column: 'tags')
-  include Metka::Model(column: 'materials')
+  include Metka::Model(column: 'categories')
 
   belongs_to :user
 end

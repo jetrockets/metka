@@ -4,7 +4,7 @@ require 'spec_helper'
 
 RSpec.describe Metka::Model, :db do
   let!(:tag_list)      { 'ruby, rails, crystal' }
-  let!(:material_list) { 'steel | wood | rock' }
+  let!(:category_list) { 'news | sports | politics' }
 
   let!(:user)     { User.create(name: Faker::Name.name) }
   let!(:user1)    { User.create!(name: Faker::Name.name, tags: %w[author best_selling]) }
@@ -14,7 +14,7 @@ RSpec.describe Metka::Model, :db do
 
   before do
     post.tag_list = tag_list
-    post.material_list = material_list
+    post.category_list = category_list
     post.save!
 
     post_two.tag_list = ['php', 'java', 'scala']
@@ -45,7 +45,7 @@ RSpec.describe Metka::Model, :db do
     end
 
     describe '.with_any' do
-      let(:new_tag_list) { tag_list + 'Go' }
+      let(:new_tag_list) { tag_list + ', go'}
 
       it 'should respond to .with_any method' do
         expect(Post).to respond_to(:with_any_tags)
@@ -96,50 +96,51 @@ RSpec.describe Metka::Model, :db do
 
     describe '.tagged_with' do
       specify do
-        view_post.tags << 'php'
-        view_post.save!
+        post.tags << 'php'
+        post.save!
 
-        expect(ViewPost.tagged_with(%w[php ruby]).count).to eq(1)
-        expect(ViewPost.tagged_with(%w[php ruby]).first).to eq(view_post)
+        expect(Post.tagged_with(%w[php ruby]).count).to eq(1)
+        expect(Post.tagged_with(%w[php ruby]).first).to eq(post)
       end
 
       specify do
-        expect(ViewPost.tagged_with(%w[php cobol], any: true).count).to eq(1)
-        expect(ViewPost.tagged_with(%w[php cobol], any: true).first).to eq(view_post_two)
+        expect(Post.tagged_with(%w[php cobol], any: true).count).to eq(1)
+        expect(Post.tagged_with(%w[php cobol], any: true).first).to eq(post_two)
       end
 
       specify do
-        expect(ViewPost.tagged_with(%w[php], exclude: true).count).to eq(1)
-        expect(ViewPost.tagged_with(%w[php], exclude: true).first).to eq(view_post)
+        expect(Post.tagged_with(%w[php], exclude: true).count).to eq(1)
+        expect(Post.tagged_with(%w[php], exclude: true).first).to eq(post)
       end
 
       specify do
-        view_post.tags << 'php'
-        view_post.save!
+        post.tags << 'php'
+        post.save!
 
-        expect(ViewPost.tagged_with(%w[php ruby], any: false).count).to eq(1)
-        expect(ViewPost.tagged_with(%w[php ruby], any: false).first).to eq(view_post)
+        expect(Post.tagged_with(%w[php ruby], any: false).count).to eq(1)
+        expect(Post.tagged_with(%w[php ruby], any: false).first).to eq(post)
       end
 
       specify do
-        expect(ViewPost.tagged_with('php', on: ['materials'])).to eq []
-        expect(ViewPost.tagged_with('ruby', on: ['tags']).count).to eq(1)
-        expect(ViewPost.tagged_with('ruby', on: ['tags']).first).to eq(view_post)
+        expect(Post.tagged_with('php', on: ['materials'])).to eq []
+        expect(Post.tagged_with('ruby', on: ['tags']).count).to eq(1)
+        expect(Post.tagged_with('ruby', on: ['tags']).first).to eq(post)
       end
 
       specify do
         ['', nil, []].each do |tags|
-          expect(ViewPost.tagged_with(tags, any: false)).to eq(ViewPost.none)
-          expect(ViewPost.tagged_with(tags, any: true)).to eq(ViewPost.none)
-          expect(ViewPost.tagged_with(tags, exclude: true, any: true)).to eq(ViewPost.none)
-          expect(ViewPost.tagged_with(tags, exclude: true, any: false)).to eq(ViewPost.none)
+          expect(Post.tagged_with(tags, any: false)).to eq(Post.none)
+          expect(Post.tagged_with(tags, any: true)).to eq(Post.none)
+          expect(Post.tagged_with(tags, exclude: true, any: true)).to eq(Post.none)
+          expect(Post.tagged_with(tags, exclude: true, any: false)).to eq(Post.none)
         end
       end
     end
   end
 
-  context 'when as tags use materials' do
-    let(:tags)       { "author | best_selling" }
+<<<<<<< HEAD
+  context 'when as tags use categories' do
+    let(:tags) { 'author | best_selling' }
 
     describe '.with_all_tags' do
       it 'should respond to .with_all_tags' do
@@ -163,7 +164,7 @@ RSpec.describe Metka::Model, :db do
     end
 
     describe '.with_any_tags' do
-      let(:new_tags_list) { tags + ' | iron' }
+      let(:new_tags_list) { tags + ' | misc' }
 
       it 'should respond to .with_any_tags' do
         expect(User).to respond_to(:with_any_tags)

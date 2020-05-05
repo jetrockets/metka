@@ -2,30 +2,30 @@
 
 require 'spec_helper'
 
-RSpec.describe Metka::TaggedWithTagsAndMaterialsMaterializedViewMultitagPost, :model do
+RSpec.describe Metka::TaggedWithTagsAndCategoriesMaterializedViewMultitagPost, :model do
   let!(:tag1)       { 'tag1' }
   let!(:tag2)       { 'tag2' }
-  let!(:material1)  { 'material1' }
-  let!(:material2)  { 'material2' }
+  let!(:category1)  { 'category1' }
+  let!(:category2)  { 'category2' }
   let!(:shared_tag) { 'sharedtag' }
   let!(:unused_tag) { 'tag3' }
   let!(:user)       { User.create(name: Faker::Name.name) }
 
-  let(:tagged_model) { TaggedWithTagsAndMaterialsMaterializedViewMultitagPost }
+  let(:tagged_model) { TaggedWithTagsAndCategoriesMaterializedViewMultitagPost }
 
   context 'when has tagged materialized view posts' do
     let!(:materialized_view_multitag_post_1) do
       MaterializedViewMultitagPost.create(
         user_id: user.id,
         tag_list: [tag1, shared_tag],
-        material_list: [material1, material2]
+        category_list: [category1, category2]
       )
     end
     let!(:materialized_view_multitag_post_2) do
       MaterializedViewMultitagPost.create(
         user_id: user.id,
         tag_list: [tag1, tag2],
-        material_list: [material2, shared_tag]
+        category_list: [category2, shared_tag]
       )
     end
 
@@ -38,9 +38,9 @@ RSpec.describe Metka::TaggedWithTagsAndMaterialsMaterializedViewMultitagPost, :m
       expect(tagged_model.find_by(tag_name: tag2).taggings_count).to eq(1)
     end
 
-    it 'has correct materials taggings count' do
-      expect(tagged_model.find_by(tag_name: material1).taggings_count).to eq(1)
-      expect(tagged_model.find_by(tag_name: material2).taggings_count).to eq(2)
+    it 'has correct categories taggings count' do
+      expect(tagged_model.find_by(tag_name: category1).taggings_count).to eq(1)
+      expect(tagged_model.find_by(tag_name: category2).taggings_count).to eq(2)
     end
 
     it 'correctly sums tags that are shared between taggable columns' do
@@ -56,10 +56,10 @@ RSpec.describe Metka::TaggedWithTagsAndMaterialsMaterializedViewMultitagPost, :m
     end
 
     it 'increases the counter on post with tag addition' do
-      expect{ MaterializedViewMultitagPost.create(user_id: user.id, tag_list: tag2, material_list: material1) }
+      expect{ MaterializedViewMultitagPost.create(user_id: user.id, tag_list: tag2, category_list: category1) }
         .to change{ tagged_model.find_by(tag_name: tag2).taggings_count }
         .by(1)
-        .and change{ tagged_model.find_by(tag_name: material1).taggings_count }
+        .and change{ tagged_model.find_by(tag_name: category1).taggings_count }
         .by(1)
     end
 
@@ -69,9 +69,9 @@ RSpec.describe Metka::TaggedWithTagsAndMaterialsMaterializedViewMultitagPost, :m
         .by(-1)
         .and change{ tagged_model.find_by(tag_name: shared_tag).taggings_count }
         .by(-1)
-        .and change{ tagged_model.find_by(tag_name: material1)&.taggings_count.to_i }
+        .and change{ tagged_model.find_by(tag_name: category1)&.taggings_count.to_i }
         .by(-1)
-        .and change{ tagged_model.find_by(tag_name: material2).taggings_count }
+        .and change{ tagged_model.find_by(tag_name: category2).taggings_count }
         .by(-1)
     end
 
@@ -84,7 +84,7 @@ RSpec.describe Metka::TaggedWithTagsAndMaterialsMaterializedViewMultitagPost, :m
     end
 
     it 'decreases the counter on post tags narrowing via update' do
-      expect{ materialized_view_multitag_post_2.update(material_list: material2) }
+      expect{ materialized_view_multitag_post_2.update(category_list: category2) }
         .to change{ tagged_model.find_by(tag_name: shared_tag).taggings_count }
         .by(-1)
     end
