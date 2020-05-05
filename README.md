@@ -43,8 +43,7 @@ end
 
 ```ruby
 class Song < ActiveRecord::Base
-  include Metka::Model(column: 'tags')
-  include Metka::Model(column: 'genres')
+  include Metka::Model(columns: %w[genres tags])
 end
 
 @song = Song.new(title: 'Migrate tags in Rails to PostgreSQL')
@@ -93,7 +92,7 @@ Song.without_all_tags('top, 1990')
 => [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
 
 Song.without_all_tags('')
-=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
+=> []
 
 Song.without_all_genres('rock, pop')
 => [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
@@ -114,7 +113,55 @@ Song.without_any_genres('rock, pop')
 => []
 
 Song.without_any_genres('')
+=> []
+```
+
+### .tagged_with
+```ruby
+Song.tagged_with('top')
 => [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
+
+Song.tagged_with('top, 1990')
+=> []
+
+Song.tagged_with('')
+=> []
+
+Song.tagged_with('rock')
+=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
+
+Song.tagged_with('rock', join_operator: Metka::And)
+=> []
+
+Song.tagged_with('chill', any: true)
+=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
+
+Song.tagged_with('chill, 1980', any: true)
+=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
+
+Song.tagged_with('', any: true)
+=> []
+
+Song.tagged_with('rock, rap', any: true, on: ['genres'])
+=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
+
+Song.without_all_tags('top')
+=> []
+
+Song.tagged_with('top, 1990', exclude: true)
+=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
+
+Song.tagged_with('', exclude: true)
+=> []
+
+Song.tagged_with('top, 1990', any: true, exclude: true)
+=> []
+
+Song.tagged_with('1990, 1980', any: true, exclude: true)
+=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
+
+Song.without_any_genres('rock, pop')
+=> []
 ```
 
 ## Custom delimiter
@@ -136,11 +183,10 @@ parsed_data.to_a
 
 ## Custom parser
 By default we use [generic_parser](lib/metka/generic_parser.rb "generic_parser")
-If you want use your custom parser you can do:
+If you want to use your custom parser you can do:
 ```ruby
 class Song < ActiveRecord::Base
-  include Metka::Model(column: 'tags', parser: Your::Custom::Parser.instance)
-  include Metka::Model(column: 'genres')
+  include Metka::Model(columns: %w[genres tags], parser: Your::Custom::Parser.instance)
 end
 ```
 Custom parser must be a singleton class that has a `.call` method that accepts the tag string

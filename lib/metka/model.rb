@@ -1,46 +1,74 @@
 # frozen_string_literal: true
 
+require 'arel'
+
 module Metka
-  def self.Model(column:, **options)
-    Metka::Model.new(column: column, **options)
+  OR = Arel::Nodes::Or
+  AND = Arel::Nodes::And
+
+  def self.Model(column: nil, columns: nil, **options)
+    columns = [column, *columns].uniq.compact
+    raise ArgumentError, 'Columns not specified' unless columns.present?
+
+    Metka::Model.new(columns: columns, **options)
   end
 
   class Model < Module
-    def initialize(column: , **options)
-      @column = column
-      @options = options
+    def initialize(columns:, **options)
+      @columns = columns.dup.freeze
+      @options = options.dup.freeze
     end
 
     def included(base)
-      column = @column
+      columns = @columns
       parser = ->(tags) {
         @options[:parser] ? @options[:parser].call(tags) : Metka.config.parser.instance.call(tags)
       }
 
-      search_by_tags = ->(model, tags, column, **options) {
+      # @param model [ActiveRecord::Base] model on which to execute search
+      # @param tags [Object] list of tags, representation depends on parser used
+      # @param options [Hash] options
+      #   @option :join_operator [Metka::AND, Metka::OR]
+      #   @option :on [Array<String>] list of column names to include in query
+      # @returns ViewPost::ActiveRecord_Relation
+      tagged_with_lambda = ->(model, tags, **options) {
+        cols = options.delete(:on)
         parsed_tag_list = parser.call(tags)
-        if options[:without].present?
-          model.where.not(::Metka::QueryBuilder.new.call(model, column, parsed_tag_list, options))
-        else
-          return model.none if parsed_tag_list.empty?
-          model.where(::Metka::QueryBuilder.new.call(model, column, parsed_tag_list, options))
-        end
+
+        return model.none if parsed_tag_list.empty?
+
+        request = ::Metka::QueryBuilder.new.call(model, cols, parsed_tag_list, options)
+        model.where(request)
       }
 
       base.class_eval do
-        scope "with_all_#{column}", ->(tags) { search_by_tags.call(self, tags, column) }
-        scope "with_any_#{column}", ->(tags) { search_by_tags.call(self, tags, column, { any: true }) }
-        scope "without_all_#{column}", ->(tags) { search_by_tags.call(self, tags, column, { exclude_all: true, without: true }) }
-        scope "without_any_#{column}", ->(tags) { search_by_tags.call(self, tags, column, { exclude_any: true, without: true }) }
+        columns.each do |column|
+          scope "with_all_#{column}",    ->(tags) { tagged_with(tags, on: [ column ]) }
+          scope "with_any_#{column}",    ->(tags) { tagged_with(tags, on: [ column ], any: true) }
+          scope "without_all_#{column}", ->(tags) { tagged_with(tags, on: [ column ], exclude: true) }
+          scope "without_any_#{column}", ->(tags) { tagged_with(tags, on: [ column ], any: true, exclude: true) }
+        end
+
+        unless respond_to?(:tagged_with)
+          scope :tagged_with, ->(tags = '', options = {}) {
+            options[:join_operator] ||= ::Metka::OR
+            options = {any: false}.merge(options)
+            options[:on] ||= columns
+
+            tagged_with_lambda.call(self, tags, **options)
+          }
+        end
       end
 
-      base.define_method(column.singularize + '_list=') do |v|
-        self.write_attribute(column, parser.call(v).to_a)
-        self.write_attribute(column, nil) if self.send(column).empty?
-      end
+      columns.each do |column|
+        base.define_method(column.singularize + '_list=') do |v|
+          write_attribute(column, parser.call(v).to_a)
+          write_attribute(column, nil) if send(column).empty?
+        end
 
-      base.define_method(column.singularize + '_list') do
-        parser.call(self.send(column))
+        base.define_method(column.singularize + '_list') do
+          parser.call(send(column))
+        end
       end
     end
   end
