@@ -4,11 +4,11 @@ require 'spec_helper'
 
 RSpec.describe Metka::Model, :db do
   let!(:tag_list)      { 'ruby, rails, crystal' }
-  let!(:category_list) { 'news | sports | politics' }
+  let!(:category_list) { 'programming, backend, frontend' }
 
   let!(:user)     { User.create(name: Faker::Name.name) }
-  let!(:user1)    { User.create!(name: Faker::Name.name, tags: %w[author best_selling]) }
-  let!(:user2)    { User.create!(name: Faker::Name.name, tags: ['follower']) }
+  let!(:user1)    { User.create!(name: Faker::Name.name, tags: %w[developer senior]) }
+  let!(:user2)    { User.create!(name: Faker::Name.name, tags: ['junior']) }
   let!(:post)     { Post.new(user_id: user.id)}
   let!(:post_two) { Post.new(user_id: user.id)}
 
@@ -21,7 +21,7 @@ RSpec.describe Metka::Model, :db do
     post_two.save!
   end
 
-  context 'when as tags use tags' do
+  context 'with default parser' do
     describe '.with_all_tags' do
       it 'should respond to .with_all_tags' do
         expect(Post).to respond_to(:with_all_tags)
@@ -78,7 +78,7 @@ RSpec.describe Metka::Model, :db do
         expect(Post.without_all_tags(post.tag_list.to_a).first).to eq(post_two)
       end
 
-      it 'should return all view post if posts dont include all tags' do
+      it 'should return all post if posts dont include all tags' do
         expect(Post.without_all_tags(post_two.tag_list.to_a << '123').count).to eq(2)
       end
     end
@@ -122,7 +122,7 @@ RSpec.describe Metka::Model, :db do
       end
 
       specify do
-        expect(Post.tagged_with('php', on: ['materials'])).to eq []
+        expect(Post.tagged_with('php', on: ['categories'])).to eq []
         expect(Post.tagged_with('ruby', on: ['tags']).count).to eq(1)
         expect(Post.tagged_with('ruby', on: ['tags']).first).to eq(post)
       end
@@ -138,9 +138,8 @@ RSpec.describe Metka::Model, :db do
     end
   end
 
-<<<<<<< HEAD
-  context 'when as tags use categories' do
-    let(:tags) { 'author | best_selling' }
+  context 'with custom parser' do
+    let(:tags) { 'developer | senior' }
 
     describe '.with_all_tags' do
       it 'should respond to .with_all_tags' do
@@ -153,24 +152,24 @@ RSpec.describe Metka::Model, :db do
         expect(User.with_all_tags(tags).first).to eq(user1)
       end
 
-      it 'should return an empty scope for empty materials' do
+      it 'should return an empty scope for empty categories' do
         expect(User.with_all_tags('')).to be_empty
       end
 
-      it 'should return an empty scope for unused materials' do
-        finding_tags = [tags.split(' | ').first, 'follower']
+      it 'should return an empty scope for unused categories' do
+        finding_tags = [tags.split(' | ').first, 'junior']
         expect(User.with_all_tags(finding_tags)).to be_empty
       end
     end
 
     describe '.with_any_tags' do
-      let(:new_tags_list) { tags + ' | misc' }
+      let(:new_tags_list) { tags + ' | backend' }
 
       it 'should respond to .with_any_tags' do
         expect(User).to respond_to(:with_any_tags)
       end
 
-      it 'should be able to find by material' do
+      it 'should be able to find by category' do
         expect(User.with_any_tags(new_tags_list)).to be_present
         expect(User.with_any_tags(new_tags_list.split(' | ').first)).to be_present
         expect(User.with_any_tags(new_tags_list).first).to eq(user1)
