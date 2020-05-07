@@ -12,6 +12,11 @@ module Metka
   class GenericParser
     include Singleton
 
+    def initialize
+      @single_quote_pattern ||= {}
+      @double_quote_pattern ||= {}
+    end
+
     def call(value)
       TagList.new.tap do |tag_list|
         case value
@@ -41,11 +46,11 @@ module Metka
     end
 
     def single_quote_pattern
-     @single_quote_pattern ||= /(\A|#{delimiter})\s*'(.*?)'\s*(?=#{delimiter}\s*|\z)/
+     @single_quote_pattern[delimiter] ||= /(\A|#{delimiter})\s*'(.*?)'\s*(?=#{delimiter}\s*|\z)/
     end
 
     def double_quote_pattern
-      @double_quote_pattern ||= /(\A|#{delimiter})\s*"(.*?)"\s*(?=#{delimiter}\s*|\z)/
+      @double_quote_pattern[delimiter] ||= /(\A|#{delimiter})\s*"(.*?)"\s*(?=#{delimiter}\s*|\z)/
     end
   end
 end
