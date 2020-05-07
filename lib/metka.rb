@@ -16,5 +16,5 @@ module Metka
   extend Dry::Configurable
 
   setting :parser, Metka::GenericParser
-  setting :delimiter, ','
+  setting :delimiter, ',', reader: true
 end

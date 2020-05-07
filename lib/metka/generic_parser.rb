@@ -20,7 +20,7 @@ module Metka
           gsub_quote_pattern!(tag_list, value, double_quote_pattern)
           gsub_quote_pattern!(tag_list, value, single_quote_pattern)
 
-          tag_list.merge value.split(Regexp.new joined_delimiter).map(&:strip).reject(&:empty?)
+          tag_list.merge value.split(Regexp.new delimiter).map(&:strip).reject(&:empty?)
         when Enumerable
           tag_list.merge value.reject(&:empty?)
         end
@@ -36,18 +36,16 @@ module Metka
       }
     end
 
-    def joined_delimiter
-      [Metka.config.delimiter].flatten
-        .map { |delimeter| Regexp.escape(delimeter) }
-        .join('|')
+    def delimiter
+      Metka.delimiter
     end
 
     def single_quote_pattern
-      /(\A|#{joined_delimiter})\s*'(.*?)'\s*(?=#{joined_delimiter}\s*|\z)/
+     @single_quote_pattern ||= /(\A|#{delimiter})\s*'(.*?)'\s*(?=#{delimiter}\s*|\z)/
     end
 
     def double_quote_pattern
-      /(\A|#{joined_delimiter})\s*"(.*?)"\s*(?=#{joined_delimiter}\s*|\z)/
+      @double_quote_pattern ||= /(\A|#{delimiter})\s*"(.*?)"\s*(?=#{delimiter}\s*|\z)/
     end
   end
 end
