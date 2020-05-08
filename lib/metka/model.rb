@@ -67,7 +67,7 @@ module Metka
         end
 
         base.define_method(column.singularize + '_list') do
-          parser.call(send(column))
+          parser.call(public_send(column))
         end
       end
     end

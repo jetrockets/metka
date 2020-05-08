@@ -168,10 +168,10 @@ Song.without_any_genres('rock, pop')
 By default, a comma is used as a delimiter to create tags from a string.
 You can make your own custom separator:
 ```ruby
-Metka.config.delimiter = [',', ' ', '|']
+Metka.config.delimiter = '|'
 parsed_data = Metka::GenericParser.instance.call('cool, data|I have')
 parsed_data.to_a
-=>['cool', 'data', 'I', 'have']
+=>['cool, data', 'I have']
 ```
 
 ## Tags with quote
