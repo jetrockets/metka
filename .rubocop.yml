@@ -9,7 +9,6 @@ AllCops:
     - 'Gemfile'
     - 'vendor/**/*'
     - 'gemfiles/**/*'
-    - '**/*.md'
   DisplayCopNames: true
   TargetRubyVersion: 2.5
 

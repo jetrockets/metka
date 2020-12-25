@@ -15,7 +15,7 @@ module Metka
         )
 
         column_cast = Arel::Nodes::NamedFunction.new(
-        'ANY',
+          'ANY',
           [model.arel_table[column_name]]
         )
 
