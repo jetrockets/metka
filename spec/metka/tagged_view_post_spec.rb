@@ -3,10 +3,10 @@
 require 'spec_helper'
 
 RSpec.describe Metka::TaggedViewPost, :model do
-  let!(:tag1)       { 'tag1' }
-  let!(:tag2)       { 'tag2' }
+  let!(:tag1) { 'tag1' }
+  let!(:tag2) { 'tag2' }
   let!(:unused_tag) { 'tag3' }
-  let!(:user)       { User.create(name: Faker::Name.name) }
+  let!(:user) { User.create(name: Faker::Name.name) }
 
   let(:tagged_model) { TaggedViewPost }
 
@@ -32,32 +32,32 @@ RSpec.describe Metka::TaggedViewPost, :model do
     end
 
     it 'increases the counter on post with tag addition' do
-      expect{ ViewPost.create(user_id: user.id, tag_list: tag2) }
-        .to change{ tagged_model.find_by(tag_name: tag2).taggings_count }
+      expect { ViewPost.create(user_id: user.id, tag_list: tag2) }
+        .to change { tagged_model.find_by(tag_name: tag2).taggings_count }
         .by(1)
     end
 
     it 'decreases the counter on post with tag removal' do
-      expect{ view_post_1.delete }
-        .to change{ tagged_model.find_by(tag_name: tag1).taggings_count }
+      expect { view_post_1.delete }
+        .to change { tagged_model.find_by(tag_name: tag1).taggings_count }
         .by(-1)
     end
 
     it 'increases the counter on post tags expansion via update' do
       expect { view_post_1.update(tag_list: [tag1, tag2]) }
-        .to change{ tagged_model.find_by(tag_name: tag2).taggings_count }
+        .to change { tagged_model.find_by(tag_name: tag2).taggings_count }
         .by(1)
     end
 
     it 'decreases the counter on post tags narrowing via update' do
       expect { view_post_2.update(tag_list: tag2) }
-        .to change{ tagged_model.find_by(tag_name: tag1).taggings_count }
+        .to change { tagged_model.find_by(tag_name: tag1).taggings_count }
         .by(-1)
     end
 
     it 'decreases the counter on post tags nullify' do
-      expect{ view_post_1.update(tag_list: nil) }
-        .to change{ tagged_model.find_by(tag_name: tag1).taggings_count }
+      expect { view_post_1.update(tag_list: nil) }
+        .to change { tagged_model.find_by(tag_name: tag1).taggings_count }
         .by(-1)
     end
   end
