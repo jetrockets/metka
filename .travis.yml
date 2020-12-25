@@ -14,7 +14,7 @@ addons:
   postgresql: "11.2"
 
 before_install:
-  - gem install -v 2.0.2 bundler
+  - gem install -v 2.1.4 bundler
   - sudo apt-get update
   - sudo apt-get --yes remove postgresql\*
   - sudo apt-get install -y postgresql-11 postgresql-client-11
@@ -27,9 +27,11 @@ before_script:
 
 matrix:
   include:
-    - rvm: 2.5.5
+    - rvm: 2.5.8
       gemfile: gemfiles/rails52.gemfile
-    - rvm: 2.6.2
+    - rvm: 2.6.6
       gemfile: gemfiles/rails6.gemfile
     - rvm: 2.7.2
+      gemfile: gemfiles/rails61.gemfile
+    - rvm: 3.0.0
       gemfile: gemfiles/rails61.gemfile

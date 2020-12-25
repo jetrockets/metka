@@ -25,7 +25,7 @@ module Metka
 
     private
 
-    def options_to_strategy options
+    def options_to_strategy(options)
       if options[:any].present?
         AnyTagsQuery
       else

@@ -22,7 +22,7 @@ RSpec.describe Metka::AllTagsQuery do
 
     it 'should return correct sql' do
       expect(klass.instance.call(model, column_name, tag_list).to_sql).to eq(
-        "CAST(\"posts\".\"tags\" AS text[]) @> CAST(ARRAY['ruby','rails'] AS text[])"
+        "\"posts\".\"tags\" @> ARRAY['ruby','rails']::varchar[]"
       )
     end
   end
