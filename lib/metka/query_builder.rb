@@ -10,11 +10,11 @@ module Metka
     def call(model, columns, tags, options)
       strategy = options_to_strategy(options)
 
-      query = join(options[:join_operator]) do
+      query = join(options[:join_operator]) {
         columns.map do |column|
           build_query(strategy, model, column, tags)
         end
-      end
+      }
 
       if options[:exclude].present?
         Arel::Nodes::Not.new(query)
@@ -43,11 +43,13 @@ module Metka
       end
     end
 
-    # @param nodes [Array<Arel::Node>, Arel::Node]
-    # @return [Arel::Node]
+    # @param nodes [Array<Arel::Nodes::Node>, Arel::Nodes::Node]
+    # @return [Arel::Nodes::Node]
     def join_or(nodes)
+      node_base_klass = defined?(::Arel::Nodes::Node) ? ::Arel::Nodes::Node : ::Arel::Node
+
       case nodes
-      when ::Arel::Node
+      when node_base_klass
         nodes
       when Array
         l, *r = nodes

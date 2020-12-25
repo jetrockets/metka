@@ -198,7 +198,7 @@ PLATFORMS
   ruby
 
 DEPENDENCIES
-  activerecord (~> 5.2.4)
+  activerecord (>= 5.2.4, < 6.2)
   ammeter (>= 1.1)
   bundler (>= 1.3)
   database_cleaner (>= 1.7)

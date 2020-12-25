@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
 require 'spec_helper'
-require 'generators/metka/strategies/materialized_view/materialized_view_generator.rb'
+require 'generators/metka/strategies/materialized_view/materialized_view_generator'
 
 RSpec.describe Metka::Generators::Strategies::MaterializedViewGenerator, type: :generator do
   destination File.expand_path('../../tmp', __dir__)
@@ -52,4 +52,3 @@ RSpec.describe Metka::Generators::Strategies::MaterializedViewGenerator, type: :
     end
   end
 end
-

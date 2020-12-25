@@ -5,9 +5,9 @@ require 'spec_helper'
 RSpec.describe Metka::Model, :db do
   let!(:user) { User.create(name: Faker::Name.name) }
 
-  let!(:first_post)  { Post.create(user_id: user.id, tags: ['ruby', 'elixir', 'crystal'], categories: ['ruby', 'programming']) }
+  let!(:first_post) { Post.create(user_id: user.id, tags: ['ruby', 'elixir', 'crystal'], categories: ['ruby', 'programming']) }
   let!(:second_post) { Post.create(user_id: user.id, tags: ['ruby', 'rails', 'react'], categories: ['programming', 'backend']) }
-  let!(:third_post)  { Post.create(user_id: user.id, tags: ['php', 'yii2', 'angular'], categories: []) }
+  let!(:third_post) { Post.create(user_id: user.id, tags: ['php', 'yii2', 'angular'], categories: []) }
 
   context 'when use default join operator' do
     it 'should return collection without tag ruby' do
