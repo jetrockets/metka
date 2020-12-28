@@ -2,6 +2,8 @@ name: Lint Docs
 
 on:
   push:
+    branches:
+    - master
     paths:
     - "*.md"
     - "**/*.md"
