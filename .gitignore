@@ -11,6 +11,7 @@
 # rspec failure tracking
 .rspec_status
 spec/debug.log
+*.gem
 
 spec/dummy/log/test.log
 spec/dummy/log/development.log

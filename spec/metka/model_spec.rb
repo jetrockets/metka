@@ -10,7 +10,7 @@ RSpec.describe Metka::Model, :db do
   let!(:user1) { User.create!(name: Faker::Name.name, tags: %w[developer senior]) }
   let!(:user2) { User.create!(name: Faker::Name.name, tags: ['junior']) }
   let!(:post) { Post.new(user_id: user.id) }
-  let!(:post_two) { Post.new(user_id: user.id)}
+  let!(:post_two) { Post.new(user_id: user.id) }
 
   before do
     post.tag_list = tag_list
@@ -45,7 +45,7 @@ RSpec.describe Metka::Model, :db do
     end
 
     describe '.with_any' do
-      let(:new_tag_list) { tag_list + ', go'}
+      let(:new_tag_list) { tag_list + ', go' }
 
       it 'should respond to .with_any method' do
         expect(Post).to respond_to(:with_any_tags)

@@ -2,10 +2,10 @@
 
 require 'spec_helper'
 
-RSpec.describe Metka::AnyTagsQuery do
+RSpec.describe Metka::BaseQuery do
   let!(:model) { Post }
   let!(:column_name) { 'tags' }
-  let!(:tag_list) { ['ruby', 'rails'] }
+  let!(:tag_list) { ['ruby'] }
 
   let(:klass) { described_class }
 
@@ -14,15 +14,15 @@ RSpec.describe Metka::AnyTagsQuery do
       expect(klass.instance).to respond_to(:call)
     end
 
-    it 'should return Arel::Nodes::InfixOperation object' do
+    it 'should return Arel::Nodes::Equality object' do
       expect(klass.instance.call(model, column_name, tag_list).class).to eq(
-        Arel::Nodes::InfixOperation
+        Arel::Nodes::Equality
       )
     end
 
     it 'should return correct sql' do
       expect(klass.instance.call(model, column_name, tag_list).to_sql).to eq(
-        "\"posts\".\"tags\" && ARRAY['ruby','rails']::varchar[]"
+        "'ruby' = ANY(\"posts\".\"tags\")"
       )
     end
   end
