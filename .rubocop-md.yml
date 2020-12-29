@@ -15,3 +15,6 @@ Lint/Void:
 Lint/DuplicateMethods:
   Exclude:
     - '**/*.md'
+
+Layout/SpaceInsideHashLiteralBraces:
+  EnforcedStyle: space
