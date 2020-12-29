@@ -42,8 +42,8 @@ class CreateSongs < ActiveRecord::Migration[5.0]
   def change
     create_table :songs do |t|
       t.string :title
-      t.string :tags, array: true
-      t.string :genres, array: true
+      t.string :tags, array: true, default: [], index: { using: :gin }
+      t.string :genres, array: true, default: [], index: { using: :gin }
       t.timestamps
     end
   end
