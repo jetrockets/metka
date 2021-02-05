@@ -34,8 +34,8 @@ RSpec.describe Metka::Model, :db do
         expect(Post.with_all_tags(tag_list).first).to eq(post)
       end
 
-      it 'should return an empty scope for empty tags' do
-        expect(Post.with_all_tags('')).to be_empty
+      it 'should return a not empty scope for empty tags' do
+        expect(Post.with_all_tags('')).not_to be_empty
       end
 
       it 'should return an empty scope for unused tags' do
@@ -69,7 +69,7 @@ RSpec.describe Metka::Model, :db do
 
       it 'should return two object if tags empty' do
         ['', nil, []].each do |tags|
-          expect(Post.without_all_tags(tags).size).to eq(0)
+          expect(Post.without_all_tags(tags).size).to eq(Post.count)
         end
       end
 
@@ -129,10 +129,10 @@ RSpec.describe Metka::Model, :db do
 
       specify do
         ['', nil, []].each do |tags|
-          expect(Post.tagged_with(tags, any: false)).to eq(Post.none)
-          expect(Post.tagged_with(tags, any: true)).to eq(Post.none)
-          expect(Post.tagged_with(tags, exclude: true, any: true)).to eq(Post.none)
-          expect(Post.tagged_with(tags, exclude: true, any: false)).to eq(Post.none)
+          expect(Post.tagged_with(tags, any: false)).to eq(Post.all)
+          expect(Post.tagged_with(tags, any: true)).to eq(Post.all)
+          expect(Post.tagged_with(tags, exclude: true, any: true)).to eq(Post.all)
+          expect(Post.tagged_with(tags, exclude: true, any: false)).to eq(Post.all)
         end
       end
     end
@@ -152,8 +152,8 @@ RSpec.describe Metka::Model, :db do
         expect(User.with_all_tags(tags).first).to eq(user1)
       end
 
-      it 'should return an empty scope for empty categories' do
-        expect(User.with_all_tags('')).to be_empty
+      it 'should return a not empty scope for empty categories' do
+        expect(User.with_all_tags('')).not_to be_empty
       end
 
       it 'should return an empty scope for unused categories' do
