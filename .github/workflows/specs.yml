@@ -1,4 +1,4 @@
-name: Build
+name: Specs
 
 on:
   push:
@@ -54,12 +54,12 @@ jobs:
           --health-retries 5
     steps:
     - uses: actions/checkout@v2
-    # - uses: actions/cache@v1
-    #   with:
-    #     path: /home/runner/bundle
-    #     key: bundle-${{ matrix.ruby }}-${{ matrix.gemfile }}-${{ hashFiles(matrix.gemfile) }}-${{ hashFiles('**/*.gemspec') }}
-    #     restore-keys: |
-    #       bundle-${{ matrix.ruby }}-${{ matrix.gemfile }}-
+    - uses: actions/cache@v1
+      with:
+        path: /home/runner/bundle
+        key: bundle-${{ matrix.ruby }}-${{ matrix.gemfile }}-${{ hashFiles(matrix.gemfile) }}-${{ hashFiles('**/*.gemspec') }}
+        restore-keys: |
+          bundle-${{ matrix.ruby }}-${{ matrix.gemfile }}-
     - name: Install system deps
       run: |
         sudo apt-get update
