@@ -35,7 +35,7 @@ module Metka
         cols = options.delete(:on)
         parsed_tag_list = parser.call(tags)
 
-        return model.none if parsed_tag_list.empty?
+        return model if parsed_tag_list.empty?
 
         request = ::Metka::QueryBuilder.new.call(model, cols, parsed_tag_list, options)
         model.where(request)

@@ -73,7 +73,10 @@ Song.with_all_tags('top, 1990')
 #=> []
 
 Song.with_all_tags('')
-#=> []
+#=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
+
+Song.with_all_tags(nil)
+#=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
 
 Song.with_all_genres('rock')
 #=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
@@ -89,7 +92,10 @@ Song.with_any_tags('chill, 1980')
 #=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
 
 Song.with_any_tags('')
-#=> []
+#=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
+
+Song.with_any_tags(nil)
+#=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
 
 Song.with_any_genres('rock, rap')
 #=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
@@ -105,7 +111,10 @@ Song.without_all_tags('top, 1990')
 #=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
 
 Song.without_all_tags('')
-#=> []
+#=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
+
+Song.without_all_tags(nil)
+#=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
 
 Song.without_all_genres('rock, pop')
 #=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
@@ -127,7 +136,10 @@ Song.without_any_genres('rock, pop')
 #=> []
 
 Song.without_any_genres('')
-#=> []
+#=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
+
+Song.without_any_genres(nil)
+#=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
 ```
 
 ### .tagged_with
@@ -140,7 +152,10 @@ Song.tagged_with('top, 1990')
 #=> []
 
 Song.tagged_with('')
-#=> []
+#=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
+
+Song.tagged_with(nil)
+#=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
 
 Song.tagged_with('rock')
 #=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
@@ -155,7 +170,7 @@ Song.tagged_with('chill, 1980', any: true)
 #=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
 
 Song.tagged_with('', any: true)
-#=> []
+#=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
 
 Song.tagged_with('rock, rap', any: true, on: ['genres'])
 #=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
@@ -167,7 +182,7 @@ Song.tagged_with('top, 1990', exclude: true)
 #=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
 
 Song.tagged_with('', exclude: true)
-#=> []
+#=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
 
 Song.tagged_with('top, 1990', any: true, exclude: true)
 #=> []

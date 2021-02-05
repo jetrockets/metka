@@ -29,9 +29,9 @@ RSpec.describe Metka::Model, :db do
       expect(posts.size).to eq(2)
     end
 
-    it 'should return empty collection if params empty' do
+    it 'should return a collection if params empty' do
       ['', nil, []].each do |tags|
-        expect(Post.tagged_with(tags, exclude: true, any: true)).to eq(Post.none)
+        expect(Post.tagged_with(tags, exclude: true, any: true)).to eq(Post.all)
       end
     end
 
