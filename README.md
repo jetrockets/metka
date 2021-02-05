@@ -1,5 +1,5 @@
 [![Gem Version](https://badge.fury.io/rb/metka.svg)](https://badge.fury.io/rb/metka)
-[![Build Status](https://github.com/jetrockets/metka/workflows/Build/badge.svg?branch=master)](https://github.com/jetrockets/metka/actions)
+[![Build Status](https://github.com/jetrockets/metka/workflows/Specs/badge.svg?branch=master)](https://github.com/jetrockets/metka/actions)
 [![Open Source Helpers](https://www.codetriage.com/jetrockets/metka/badges/users.svg)](https://www.codetriage.com/jetrockets/metka)
 
 # Metka
