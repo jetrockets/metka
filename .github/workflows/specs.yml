@@ -5,6 +5,8 @@ on:
     branches:
     - master
   pull_request:
+  schedule:
+    - cron: "0 3 * * 1" # Every monday at 3 AM
 
 jobs:
   rspec:
@@ -27,7 +29,7 @@ jobs:
         include:
         - ruby: "3.0"
           postgres: "13"
-          gemfile: "gemfiles/railsmaster.gemfile"
+          gemfile: "gemfiles/railmain.gemfile"
           fx: "false"
         - ruby: "2.6"
           postgres: "12"
