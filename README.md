@@ -353,6 +353,35 @@ TBD
 2. [ActsAsTaggableArrayOn](https://github.com/tmiyamon/acts-as-taggable-array-on)
 3. [TagColumns](https://github.com/hopsoft/tag_columns)
 
+## Migration from ActsAsTaggable
+
+To migrate your data from `ActsAsTaggable` can be done with the following migration.
+
+```ruby
+class AddTagsToYourTable < ActiveRecord::Migration[6.0]
+  def change
+    add_column :your_table, :tags, :string, array: true
+    add_index :your_table, :tags, using: 'gin'
+
+    execute <<~SQL
+      UPDATE your_table
+      SET tags = tags.names
+      FROM (
+        SELECT taggings.taggable_id AS your_table_id,
+               array_agg(tags.name) as names
+        FROM tags
+        INNER JOIN taggings
+                ON tags.id = taggings.tag_id
+        WHERE
+          taggings.taggable_type = 'YouTableType'
+        GROUP BY taggings.taggable_id
+      ) as tags
+      WHERE your_table.id = tags.your_table_id
+    SQL
+  end
+end
+```
+
 ## Benchmark Comparison
 
 There are some results of benchmarking a performance of write, read and find operations for different gems, that provide solution for tagging. Keep in mind, that those results can't be used as a proof, that some solution is better than the others, since each of the benchmarked gems has their unique features. You could run the benchmarks yourself or check, what exact operations has been used for benchmarking, with [MetkaBench application](https://github.com/jetrockets/metka_bench).
