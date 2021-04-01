@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 
-RSpec.describe Metka::TaggedWithTagsAndCategoriesMaterializedViewMultitagPost, :model do
+RSpec.describe TaggedWithTagsAndCategoriesMaterializedViewMultitagPost, :model do
   let!(:tag1) { 'tag1' }
   let!(:tag2) { 'tag2' }
   let!(:category1) { 'category1' }
