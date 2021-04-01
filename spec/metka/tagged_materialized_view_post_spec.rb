@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 
-RSpec.describe Metka::TaggedMaterializedViewPost, :model do
+RSpec.describe TaggedMaterializedViewPost, :model do
   let!(:tag1) { 'tag1' }
   let!(:tag2) { 'tag2' }
   let!(:unused_tag) { 'tag3' }

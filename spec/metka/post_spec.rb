@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 
-RSpec.describe Metka::Post, :model do
+RSpec.describe Post, :model do
   let!(:tag1) { 'tag1' }
   let!(:tag2) { 'tag2' }
   let!(:category1) { 'category1' }
