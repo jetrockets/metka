@@ -16,44 +16,44 @@ RSpec.describe Metka::Model, :db do
   let!(:third_post) { Post.create(user_id: user.id, tags: ['php', 'yii2', 'angular'], categories: []) }
 
   context 'when use default join operator' do
-    it 'should return collection without tag ruby' do
+    it 'returns collection without tag ruby' do
       posts = Post.tagged_with('ruby', exclude: true, any: true)
 
       expect(posts.size).to eq(1)
       expect(posts.first).to eq(third_post)
     end
 
-    it 'should return collection without tag backend' do
+    it 'returns collection without tag backend' do
       posts = Post.tagged_with('backend', exclude: true, any: true)
 
       expect(posts.size).to eq(2)
     end
 
-    it 'should return a collection if params empty' do
+    it 'returns a collection if params empty' do
       ['', nil, []].each do |tags|
         expect(Post.tagged_with(tags, exclude: true, any: true)).to eq(Post.all)
       end
     end
 
-    it 'should return collection' do
+    it 'returns collection' do
       expect(Post.tagged_with('ruby, crystal, programming', exclude: true, any: true).size).to eq(1)
     end
   end
 
   context 'when use AND as join operator' do
-    it 'should return collection without tag ruby' do
+    it 'returns collection without tag ruby' do
       posts = Post.tagged_with('ruby, programming, foo', exclude: true, any: true, join_operator: Metka::AND)
 
       expect(posts.size).to eq(1)
     end
 
-    it 'should return collection without tag php' do
+    it 'returns collection without tag php' do
       posts = Post.tagged_with('php', exclude: true, any: true, join_operator: Metka::AND)
 
       expect(posts.size).to eq(3)
     end
 
-    it 'should return collection' do
+    it 'returns collection' do
       expect(
         Post.tagged_with('ruby, crystal, programming', exclude: true, any: true, join_operator: Metka::AND).size
       ).to eq(1)

@@ -18,31 +18,31 @@ RSpec.describe Metka::Model, :db do
         expect(Post.tagged_with('backend', exclude: true).size).to eq(2)
       end
 
-      it 'should return a collection if params empty' do
+      it 'returns a collection if params empty' do
         ['', nil, []].each do |tags|
           expect(Post.tagged_with(tags, exclude: true)).to eq(Post.all)
         end
       end
 
-      it 'should return collection' do
+      it 'returns collection' do
         expect(Post.tagged_with('ruby, crystal, programming', exclude: true).size).to eq(3)
       end
     end
 
     context 'when use AND as join operator' do
-      it 'should return collection without tag ruby' do
+      it 'returns collection without tag ruby' do
         posts = Post.tagged_with('ruby', exclude: true, join_operator: Metka::AND)
 
         expect(posts.size).to eq(2)
       end
 
-      it 'should return collection without tag php' do
+      it 'returns collection without tag php' do
         posts = Post.tagged_with('php', exclude: true, join_operator: Metka::AND)
 
         expect(posts.size).to eq(3)
       end
 
-      it 'should return collection' do
+      it 'returns collection' do
         expect(Post.tagged_with('ruby, crystal, programming', exclude: true, join_operator: Metka::AND).size).to eq(3)
       end
     end

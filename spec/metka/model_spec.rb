@@ -23,22 +23,22 @@ RSpec.describe Metka::Model, :db do
 
   context 'with default parser' do
     describe '.with_all_tags' do
-      it 'should respond to .with_all_tags' do
+      it 'responds to .with_all_tags' do
         expect(Post).to respond_to(:with_all_tags)
       end
 
-      it 'should be able to find by tag' do
+      it 'is able to find by tag' do
         expect(Post.with_all_tags(tag_list)).to be_present
         expect(Post.with_all_tags(tag_list.split(', ').first)).to be_present
         expect(Post.with_all_tags(tag_list.split(', ').last)).to be_present
         expect(Post.with_all_tags(tag_list).first).to eq(post)
       end
 
-      it 'should return a not empty scope for empty tags' do
+      it 'returns a not empty scope for empty tags' do
         expect(Post.with_all_tags('')).not_to be_empty
       end
 
-      it 'should return an empty scope for unused tags' do
+      it 'returns an empty scope for unused tags' do
         finding_tags = [tag_list.split(', ').first, 'PHP']
         expect(Post.with_all_tags(finding_tags)).to be_empty
       end
@@ -47,48 +47,48 @@ RSpec.describe Metka::Model, :db do
     describe '.with_any' do
       let(:new_tag_list) { tag_list + ', go' }
 
-      it 'should respond to .with_any method' do
+      it 'responds to .with_any method' do
         expect(Post).to respond_to(:with_any_tags)
       end
 
-      it 'should be able to find by tag' do
+      it 'is able to find by tag' do
         expect(Post.with_any_tags(new_tag_list)).to be_present
         expect(Post.with_any_tags(new_tag_list.split(', ').first)).to be_present
         expect(Post.with_any_tags(new_tag_list).first).to eq(post)
       end
 
-      it 'should return an empty scope for unused tags' do
+      it 'returns an empty scope for unused tags' do
         expect(Post.with_any_tags(new_tag_list.split(', ').last)).to be_empty
       end
     end
 
     describe '.without_all_tags' do
-      it 'should respond to .without_all_tags' do
+      it 'responds to .without_all_tags' do
         expect(Post).to respond_to(:without_all_tags)
       end
 
-      it 'should return two object if tags empty' do
+      it 'returns two object if tags empty' do
         ['', nil, []].each do |tags|
           expect(Post.without_all_tags(tags).size).to eq(Post.count)
         end
       end
 
-      it 'should return post' do
+      it 'returns post' do
         expect(Post.without_all_tags(post_two.tag_list.to_a).first).to eq(post)
         expect(Post.without_all_tags(post.tag_list.to_a).first).to eq(post_two)
       end
 
-      it 'should return all post if posts dont include all tags' do
+      it 'returns all post if posts dont include all tags' do
         expect(Post.without_all_tags(post_two.tag_list.to_a << '123').count).to eq(2)
       end
     end
 
     describe '.without_any_tags' do
-      it 'should respond to .without_any_tags' do
+      it 'responds to .without_any_tags' do
         expect(Post).to respond_to(:without_any_tags)
       end
 
-      it 'should return post' do
+      it 'returns post' do
         expect(Post.without_any_tags(post_two.tag_list.to_a << 'Clojure').count).to eq(1)
         expect(Post.without_any_tags(post_two.tag_list.to_a << 'Clojure').first).to eq(post)
       end
@@ -142,21 +142,21 @@ RSpec.describe Metka::Model, :db do
     let(:tags) { 'developer | senior' }
 
     describe '.with_all_tags' do
-      it 'should respond to .with_all_tags' do
+      it 'responds to .with_all_tags' do
         expect(User).to respond_to(:with_all_tags)
       end
 
-      it 'should be able to find by tags' do
+      it 'is able to find by tags' do
         expect(User.with_all_tags(tags)).to be_present
         expect(User.with_all_tags(tags.split(' | ').first)).to be_present
         expect(User.with_all_tags(tags).first).to eq(user1)
       end
 
-      it 'should return a not empty scope for empty categories' do
+      it 'returns a not empty scope for empty categories' do
         expect(User.with_all_tags('')).not_to be_empty
       end
 
-      it 'should return an empty scope for unused categories' do
+      it 'returns an empty scope for unused categories' do
         finding_tags = [tags.split(' | ').first, 'junior']
         expect(User.with_all_tags(finding_tags)).to be_empty
       end
@@ -165,17 +165,17 @@ RSpec.describe Metka::Model, :db do
     describe '.with_any_tags' do
       let(:new_tags_list) { tags + ' | backend' }
 
-      it 'should respond to .with_any_tags' do
+      it 'responds to .with_any_tags' do
         expect(User).to respond_to(:with_any_tags)
       end
 
-      it 'should be able to find by category' do
+      it 'is able to find by category' do
         expect(User.with_any_tags(new_tags_list)).to be_present
         expect(User.with_any_tags(new_tags_list.split(' | ').first)).to be_present
         expect(User.with_any_tags(new_tags_list).first).to eq(user1)
       end
 
-      it 'should return an empty scope for unused tags' do
+      it 'returns an empty scope for unused tags' do
         expect(User.with_any_tags(new_tags_list.split(' | ').last)).to be_empty
       end
     end

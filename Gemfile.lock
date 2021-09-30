@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    metka (2.3.1)
+    metka (2.3.2)
       dry-configurable (>= 0.8)
       rails (>= 5.2)
 
@@ -82,10 +82,10 @@ GEM
       database_cleaner-core (~> 2.0.0)
     database_cleaner-core (2.0.1)
     diff-lcs (1.4.4)
-    dry-configurable (0.12.1)
+    dry-configurable (0.13.0)
       concurrent-ruby (~> 1.0)
-      dry-core (~> 0.5, >= 0.5.0)
-    dry-core (0.5.0)
+      dry-core (~> 0.6)
+    dry-core (0.7.1)
       concurrent-ruby (~> 1.0)
     erubi (1.10.0)
     faker (2.17.0)
