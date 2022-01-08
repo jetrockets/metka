@@ -2,7 +2,7 @@
 
 require 'spec_helper'
 
-RSpec.describe Metka::Model, :db do
+RSpec.describe Metka::Model, '.tagged_with', db: true do
   let(:user) { User.create(name: Faker::Name.name) }
 
   before do

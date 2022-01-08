@@ -3,11 +3,12 @@
 require 'spec_helper'
 require 'generators/metka/strategies/materialized_view/materialized_view_generator'
 
+# rubocop:disable RSpec/FilePath
 RSpec.describe Metka::Generators::Strategies::MaterializedViewGenerator, type: :generator do
   destination File.expand_path('../../tmp', __dir__)
   subject { migration_file('db/migrate/create_tagged_notes_materialized_view.rb') }
 
-  let!(:args) { ['--source-table-name=notes'] }
+  let(:args) { ['--source-table-name=notes'] }
 
   before do
     prepare_destination
@@ -52,3 +53,4 @@ RSpec.describe Metka::Generators::Strategies::MaterializedViewGenerator, type: :
     end
   end
 end
+# rubocop:enable RSpec/FilePath
