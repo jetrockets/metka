@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    metka (2.3.2)
+    metka (2.3.3)
       dry-configurable (>= 0.8)
       rails (>= 5.2)
 
@@ -90,7 +90,7 @@ GEM
     erubi (1.10.0)
     faker (2.17.0)
       i18n (>= 1.6, < 2)
-    globalid (0.5.2)
+    globalid (1.0.0)
       activesupport (>= 5.0)
     i18n (1.8.10)
       concurrent-ruby (~> 1.0)
@@ -101,7 +101,7 @@ GEM
       mini_mime (>= 0.1.1)
     marcel (1.0.2)
     method_source (1.0.0)
-    mini_mime (1.1.1)
+    mini_mime (1.1.2)
     mini_portile2 (2.6.1)
     minitest (5.14.4)
     nio4r (2.5.8)
@@ -167,9 +167,9 @@ GEM
     sprockets (4.0.2)
       concurrent-ruby (~> 1.0)
       rack (> 1, < 3)
-    sprockets-rails (3.2.2)
-      actionpack (>= 4.0)
-      activesupport (>= 4.0)
+    sprockets-rails (3.4.2)
+      actionpack (>= 5.2)
+      activesupport (>= 5.2)
       sprockets (>= 3.0.0)
     thor (1.1.0)
     timecop (0.9.4)
