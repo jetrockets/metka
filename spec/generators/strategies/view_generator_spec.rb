@@ -3,6 +3,7 @@
 require 'spec_helper'
 require 'generators/metka/strategies/view/view_generator'
 
+# rubocop:disable RSpec/FilePath
 RSpec.describe Metka::Generators::Strategies::ViewGenerator, type: :generator do
   destination File.expand_path('../../tmp', __dir__)
 
@@ -33,3 +34,4 @@ RSpec.describe Metka::Generators::Strategies::ViewGenerator, type: :generator do
     end
   end
 end
+# rubocop:enable RSpec/FilePath

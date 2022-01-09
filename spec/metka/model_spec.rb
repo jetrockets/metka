@@ -3,16 +3,16 @@
 require 'spec_helper'
 
 RSpec.describe Metka::Model, :db do
-  let!(:tag_list) { 'ruby, rails, crystal' }
-  let!(:category_list) { 'programming, backend, frontend' }
-
+  let(:tag_list) { 'ruby, rails, crystal' }
+  let(:category_list) { 'programming, backend, frontend' }
+  let(:post) { Post.new(user_id: user.id) }
+  let(:post_two) { Post.new(user_id: user.id) }
   let!(:user) { User.create(name: Faker::Name.name) }
   let!(:user1) { User.create!(name: Faker::Name.name, tags: %w[developer senior]) }
-  let!(:user2) { User.create!(name: Faker::Name.name, tags: ['junior']) }
-  let!(:post) { Post.new(user_id: user.id) }
-  let!(:post_two) { Post.new(user_id: user.id) }
 
   before do
+    User.create!(name: Faker::Name.name, tags: ['junior'])
+
     post.tag_list = tag_list
     post.category_list = category_list
     post.save!

@@ -3,15 +3,15 @@
 require 'spec_helper'
 
 RSpec.describe Post, :model do
-  let!(:tag1) { 'tag1' }
-  let!(:tag2) { 'tag2' }
-  let!(:category1) { 'category1' }
-  let!(:category2) { 'category2' }
-  let!(:shared_tag) { 'sharedtag' }
-  let!(:unused_tag) { 'tag3' }
-  let!(:user) { User.create(name: Faker::Name.name) }
-
+  let(:tag1) { 'tag1' }
+  let(:tag2) { 'tag2' }
+  let(:category1) { 'category1' }
+  let(:category2) { 'category2' }
+  let(:shared_tag) { 'sharedtag' }
+  let(:unused_tag) { 'tag3' }
   let(:tagged_model) { Post }
+
+  let!(:user) { User.create(name: Faker::Name.name) }
 
   context 'tagging clouds' do
     before do

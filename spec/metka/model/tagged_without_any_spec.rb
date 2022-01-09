@@ -2,17 +2,15 @@
 
 require 'spec_helper'
 
-RSpec.describe Metka::Model, :db do
-  let!(:user) { User.create(name: Faker::Name.name) }
-
-  let!(:first_post) {
+RSpec.describe Metka::Model, '.tagged_with', db: true do
+  before do
+    # first post
     Post.create(user_id: user.id, tags: ['ruby', 'elixir', 'crystal'], categories: ['ruby', 'programming'])
-  }
-
-  let!(:second_post) {
+    # second post
     Post.create(user_id: user.id, tags: ['ruby', 'rails', 'react'], categories: ['programming', 'backend'])
-  }
+  end
 
+  let!(:user) { User.create(name: Faker::Name.name) }
   let!(:third_post) { Post.create(user_id: user.id, tags: ['php', 'yii2', 'angular'], categories: []) }
 
   context 'when use default join operator' do
