@@ -24,4 +24,4 @@ Layout/ParameterAlignment:
 # See https://github.com/rubocop-hq/rubocop/issues/4222
 Lint/AmbiguousBlockAssociation:
   Exclude:
-    - 'spec/**/*'
+    - 'test/**/*'

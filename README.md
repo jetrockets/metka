@@ -1,5 +1,5 @@
 [![Gem Version](https://badge.fury.io/rb/metka.svg)](https://badge.fury.io/rb/metka)
-[![Build Status](https://github.com/jetrockets/metka/workflows/Specs/badge.svg?branch=master)](https://github.com/jetrockets/metka/actions)
+[![Build Status](https://github.com/jetrockets/metka/workflows/Tests/badge.svg?branch=master)](https://github.com/jetrockets/metka/actions)
 [![Open Source Helpers](https://www.codetriage.com/jetrockets/metka/badges/users.svg)](https://www.codetriage.com/jetrockets/metka)
 
 # Metka
@@ -329,7 +329,7 @@ rails g metka:strategies:materialized_view --source-table-name=NAME_OF_TABLE_WIT
 
 All of the options for that strategy's generation command are the same as for the View Strategy.
 
-The migration template can be seen [here](spec/dummy/db/migrate/06_create_tagged_materialized_view_posts_materialized_view.rb "here")
+The migration template can be seen [here](test/dummy/db/migrate/06_create_tagged_materialized_view_posts_materialized_view.rb "here")
 
 With the same `notes` table with `tags` column the resulting view would have the same two columns
 

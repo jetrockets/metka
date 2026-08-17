@@ -1,4 +1,4 @@
-name: Specs
+name: Tests
 
 on:
   push:
@@ -12,7 +12,7 @@ permissions:
   contents: read
 
 jobs:
-  rspec:
+  minitest:
     runs-on: ubuntu-latest
     name: Ruby ${{ matrix.ruby }} / ${{ matrix.gemfile }} / PostgreSQL ${{ matrix.postgres }}
     continue-on-error: ${{ matrix.allow-failure || false }}
@@ -64,5 +64,5 @@ jobs:
       run: |
         bundle exec rake dummy:db:create
         bundle exec rake dummy:db:migrate:reset
-    - name: Run RSpec
-      run: bundle exec rspec -f d --force-color
+    - name: Run Minitest
+      run: bundle exec rake test
