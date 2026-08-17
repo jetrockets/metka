@@ -21,9 +21,10 @@ module Metka
 
     def included(base)
       columns = @columns
-      parser = ->(tags) {
-        @options[:parser] ? @options[:parser].call(tags) : Metka.config.parser.instance.call(tags)
-      }
+      parser =
+        ->(tags) {
+          @options[:parser] ? @options[:parser].call(tags) : Metka.config.parser.instance.call(tags)
+        }
 
       # @param model [ActiveRecord::Base] model on which to execute search
       # @param tags [Object] list of tags, representation depends on parser used
@@ -31,15 +32,16 @@ module Metka
       #   @option :join_operator [Metka::AND, Metka::OR]
       #   @option :on [Array<String>] list of column names to include in query
       # @returns ViewPost::ActiveRecord_Relation
-      tagged_with_lambda = ->(model, tags, **options) {
-        cols = options.delete(:on)
-        parsed_tag_list = parser.call(tags)
+      tagged_with_lambda =
+        ->(model, tags, **options) {
+          cols = options.delete(:on)
+          parsed_tag_list = parser.call(tags)
 
-        return model if parsed_tag_list.empty?
+          return model if parsed_tag_list.empty?
 
-        request = ::Metka::QueryBuilder.new.call(model, cols, parsed_tag_list, options)
-        model.where(request)
-      }
+          request = ::Metka::QueryBuilder.new.call(model, cols, parsed_tag_list, options)
+          model.where(request)
+        }
 
       base.class_eval do
         columns.each do |column|

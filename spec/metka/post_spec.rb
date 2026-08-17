@@ -9,14 +9,14 @@ RSpec.describe Post, :model do
   let(:category2) { 'category2' }
   let(:shared_tag) { 'sharedtag' }
   let(:unused_tag) { 'tag3' }
-  let(:tagged_model) { Post }
+  let(:tagged_model) { described_class }
 
   let!(:user) { User.create(name: Faker::Name.name) }
 
   context 'tagging clouds' do
     before do
-      Post.create(user_id: user.id, tag_list: [tag1, shared_tag], category_list: [category1, category2])
-      Post.create(user_id: user.id, tag_list: [tag1, tag2], category_list: [category2, shared_tag])
+      described_class.create(user_id: user.id, tag_list: [tag1, shared_tag], category_list: [category1, category2])
+      described_class.create(user_id: user.id, tag_list: [tag1, tag2], category_list: [category2, shared_tag])
     end
 
     specify 'are correctly generated for tags column' do

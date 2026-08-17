@@ -8,7 +8,7 @@ RSpec.describe Metka::Generators::Strategies::MaterializedViewGenerator, type: :
   destination File.expand_path('../../tmp', __dir__)
   # Pathname, not String: `exist` only reads the file path itself when the
   # subject responds to `exist?`, otherwise it goes through a removed API
-  subject { Pathname.new(migration_file('db/migrate/create_tagged_notes_materialized_view.rb')) }
+  subject(:migration) { Pathname.new(migration_file('db/migrate/create_tagged_notes_materialized_view.rb')) }
 
   let(:args) { ['--source-table-name=notes'] }
 
@@ -19,38 +19,38 @@ RSpec.describe Metka::Generators::Strategies::MaterializedViewGenerator, type: :
 
   describe 'trigger migration' do
     it 'creates migration', :aggregate_failures do
-      expect(subject).to exist
+      expect(migration).to exist
     end
 
     context 'when up migration' do
       it 'creates function' do
-        expect(subject).to contain(/CREATE OR REPLACE FUNCTION metka_refresh_tagged_notes_materialized_view/i)
+        expect(migration).to contain(/CREATE OR REPLACE FUNCTION metka_refresh_tagged_notes_materialized_view/i)
       end
 
       it 'creates materialized view' do
-        expect(subject).to contain(/CREATE MATERIALIZED VIEW tagged_notes/i)
+        expect(migration).to contain(/CREATE MATERIALIZED VIEW tagged_notes/i)
       end
 
       it 'creates uniq index' do
-        expect(subject).to contain(/CREATE UNIQUE INDEX/i)
+        expect(migration).to contain(/CREATE UNIQUE INDEX/i)
       end
 
       it 'creates trigger' do
-        expect(subject).to contain(/CREATE TRIGGER metka_on_notes/i)
+        expect(migration).to contain(/CREATE TRIGGER metka_on_notes/i)
       end
     end
 
     context 'when down migration' do
       it 'drop trigger' do
-        expect(subject).to contain(/DROP TRIGGER IF EXISTS/i)
+        expect(migration).to contain(/DROP TRIGGER IF EXISTS/i)
       end
 
       it 'drop function' do
-        expect(subject).to contain(/DROP FUNCTION IF EXISTS/i)
+        expect(migration).to contain(/DROP FUNCTION IF EXISTS/i)
       end
 
       it 'drop materialized view' do
-        expect(subject).to contain(/DROP MATERIALIZED VIEW IF EXISTS/i)
+        expect(migration).to contain(/DROP MATERIALIZED VIEW IF EXISTS/i)
       end
     end
   end

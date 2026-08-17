@@ -11,7 +11,7 @@ RSpec.describe TaggedWithTagsAndCategoriesMaterializedViewMultitagPost, :model d
   let!(:unused_tag) { 'tag3' }
   let!(:user) { User.create(name: Faker::Name.name) }
 
-  let(:tagged_model) { TaggedWithTagsAndCategoriesMaterializedViewMultitagPost }
+  let(:tagged_model) { described_class }
 
   context 'when has tagged materialized view posts' do
     let!(:materialized_view_multitag_post_1) do
@@ -30,7 +30,7 @@ RSpec.describe TaggedWithTagsAndCategoriesMaterializedViewMultitagPost, :model d
     end
 
     it 'has objects' do
-      expect(tagged_model.all.present?).to be_truthy
+      expect(tagged_model.all).to be_present
     end
 
     it 'has correct tags taggings count' do

@@ -10,11 +10,12 @@ module Metka
     def call(model, columns, tags, options)
       strategy = options_to_strategy(options)
 
-      query = join(options[:join_operator]) {
-        columns.map do |column|
-          build_query(strategy, model, column, tags)
-        end
-      }
+      query =
+        join(options[:join_operator]) {
+          columns.map do |column|
+            build_query(strategy, model, column, tags)
+          end
+        }
 
       if options[:exclude].present?
         Arel::Nodes::Not.new(query)

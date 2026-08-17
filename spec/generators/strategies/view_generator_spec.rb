@@ -17,21 +17,21 @@ RSpec.describe Metka::Generators::Strategies::ViewGenerator, type: :generator do
   describe 'trigger migration' do
     # Pathname, not String: `exist` only reads the file path itself when the
     # subject responds to `exist?`, otherwise it goes through a removed API
-    subject { Pathname.new(migration_file('db/migrate/create_tagged_notes_view.rb')) }
+    subject(:migration) { Pathname.new(migration_file('db/migrate/create_tagged_notes_view.rb')) }
 
     it 'creates migration', :aggregate_failures do
-      expect(subject).to exist
+      expect(migration).to exist
     end
 
     context 'when up migration' do
       it 'creates view' do
-        expect(subject).to contain(/CREATE OR REPLACE VIEW tagged_notes/i)
+        expect(migration).to contain(/CREATE OR REPLACE VIEW tagged_notes/i)
       end
     end
 
     context 'when down migration' do
       it 'drop view' do
-        expect(subject).to contain(/DROP VIEW/i)
+        expect(migration).to contain(/DROP VIEW/i)
       end
     end
   end

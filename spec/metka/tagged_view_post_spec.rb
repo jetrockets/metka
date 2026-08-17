@@ -8,14 +8,14 @@ RSpec.describe TaggedViewPost, :model do
   let!(:unused_tag) { 'tag3' }
   let!(:user) { User.create(name: Faker::Name.name) }
 
-  let(:tagged_model) { TaggedViewPost }
+  let(:tagged_model) { described_class }
 
   context 'when has tagged view posts' do
     let!(:view_post_1) { ViewPost.create(user_id: user.id, tag_list: tag1) }
     let!(:view_post_2) { ViewPost.create(user_id: user.id, tag_list: [tag1, tag2]) }
 
     it 'has objects' do
-      expect(tagged_model.all.present?).to be_truthy
+      expect(tagged_model.all).to be_present
     end
 
     it 'has right taggings count' do
