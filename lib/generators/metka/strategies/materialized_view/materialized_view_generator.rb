@@ -23,13 +23,13 @@ module Metka
         source_root File.expand_path('templates', __dir__)
 
         class_option :source_table_name, type: :string, required: true,
-                                         desc: 'Name of the table that has a column with tags'
+          desc: 'Name of the table that has a column with tags'
 
         class_option :source_columns, type: :array, default: DEFAULT_SOURCE_COLUMNS,
-                                      desc: 'List of the tagged columns names'
+          desc: 'List of the tagged columns names'
 
         class_option :view_name, type: :string,
-                                 desc: 'Custom name for the resulting view'
+          desc: 'Custom name for the resulting view'
 
         def generate_migration
           migration_template 'migration.rb.erb', "db/migrate/#{migration_name}.rb"
@@ -51,7 +51,7 @@ module Metka
           def view_name
             return options[:view_name] if options[:view_name]
 
-            columns_sequence = source_columns == DEFAULT_SOURCE_COLUMNS ? nil : "_with_#{source_columns_names}"
+            columns_sequence = (source_columns == DEFAULT_SOURCE_COLUMNS) ? nil : "_with_#{source_columns_names}"
             "tagged#{columns_sequence}_#{source_table_name}"
           end
 

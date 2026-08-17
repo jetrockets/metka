@@ -8,8 +8,8 @@ Rails gem to manage tags with PostgreSQL array columns.
 
 :exclamation: Requirements:
 
-* Ruby ~> 2.5
-* Rails >= 5.2 (for Rails 5.1 and 5.0 use version <2.1.0)
+* Ruby >= 3.2
+* Rails >= 7.1 (for Rails 5.2 to 6.1 use version ~> 2.3, for Rails 5.1 and 5.0 use version <2.1.0)
 
 ## Installation
 
