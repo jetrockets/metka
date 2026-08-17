@@ -1,18 +1,18 @@
 # frozen_string_literal: true
 
-ENV['RAILS_ENV'] = 'test'
+ENV["RAILS_ENV"] = "test"
 
-require 'bundler/setup'
+require "bundler/setup"
 
-require File.expand_path('dummy/config/environment', __dir__)
+require File.expand_path("dummy/config/environment", __dir__)
 
-require 'active_support/test_case'
+require "active_support/test_case"
 
-require 'faker'
-require 'timecop'
-require 'metka'
+require "faker"
+require "timecop"
+require "metka"
 
-require 'minitest/autorun'
+require "minitest/autorun"
 
 class ActiveSupport::TestCase
   # Every test runs inside a transaction that is rolled back afterwards, so

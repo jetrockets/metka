@@ -1,7 +1,7 @@
 # frozen_string_literal: true
 
-require 'rails/generators'
-require 'rails/generators/active_record'
+require "rails/generators"
+require "rails/generators/active_record"
 
 module Metka
   module Generators
@@ -9,7 +9,7 @@ module Metka
       class ViewGenerator < ::Rails::Generators::Base # :nodoc:
         include Rails::Generators::Migration
 
-        DEFAULT_SOURCE_COLUMNS = ['tags'].freeze
+        DEFAULT_SOURCE_COLUMNS = [ "tags" ].freeze
 
         desc <<~LONGDESC
           Generates migration to implement view strategy for Metka
@@ -17,19 +17,19 @@ module Metka
           > $ rails g metka:strategies:view --source-table-name=NAME_OF_TABLE_WITH_TAGS
         LONGDESC
 
-        source_root File.expand_path('templates', __dir__)
+        source_root File.expand_path("templates", __dir__)
 
         class_option :source_table_name, type: :string, required: true,
-          desc: 'Name of the table that has a column with tags'
+          desc: "Name of the table that has a column with tags"
 
         class_option :source_columns, type: :array, default: DEFAULT_SOURCE_COLUMNS,
-          desc: 'List of the tagged columns names'
+          desc: "List of the tagged columns names"
 
         class_option :view_name, type: :string,
-          desc: 'Custom name for the resulting view'
+          desc: "Custom name for the resulting view"
 
         def generate_migration
-          migration_template 'migration.rb.erb', "db/migrate/#{migration_name}.rb"
+          migration_template "migration.rb.erb", "db/migrate/#{migration_name}.rb"
         end
 
         no_tasks do
@@ -42,7 +42,7 @@ module Metka
           end
 
           def source_columns_names
-            source_columns.join('_and_')
+            source_columns.join("_and_")
           end
 
           def view_name

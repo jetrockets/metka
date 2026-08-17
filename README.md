@@ -172,7 +172,7 @@ Song.tagged_with('chill, 1980', any: true)
 Song.tagged_with('', any: true)
 #=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
 
-Song.tagged_with('rock, rap', any: true, on: ['genres'])
+Song.tagged_with('rock, rap', any: true, on: [ 'genres' ])
 #=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
 
 Song.without_all_tags('top')

@@ -7,8 +7,8 @@ require 'metka/version'
 Gem::Specification.new do |spec|
   spec.name = 'metka'
   spec.version = Metka::VERSION
-  spec.authors = ['Igor Alexandrov', 'Andrey Morozov']
-  spec.email = ['igor.alexandrov@gmail.com', 'andrey.morozov@jetrockets.ru']
+  spec.authors = [ 'Igor Alexandrov', 'Andrey Morozov' ]
+  spec.email = [ 'igor.alexandrov@gmail.com', 'andrey.morozov@jetrockets.ru' ]
 
   spec.summary = 'Rails tagging system based on PostgreSQL arrays'
   spec.description = 'Rails tagging system based on PostgreSQL arrays'
@@ -23,7 +23,7 @@ Gem::Specification.new do |spec|
     end
   spec.bindir = 'exe'
   spec.executables = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
-  spec.require_paths = ['lib']
+  spec.require_paths = [ 'lib' ]
 
   # `setting :name, default: value` is only supported since 0.13
   spec.add_dependency 'dry-configurable', '>= 0.13'
@@ -36,6 +36,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'pg', '>= 1.1'
   spec.add_development_dependency 'rake', '>= 0.8.7'
   spec.add_development_dependency 'timecop', '>= 0.9'
-  spec.add_development_dependency 'jetrockets-standard', '>= 1.1'
+  spec.add_development_dependency 'rubocop-rails-omakase', '>= 1.1'
   spec.required_ruby_version = '>= 3.2'
 end
