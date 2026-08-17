@@ -6,7 +6,9 @@ require 'generators/metka/strategies/materialized_view/materialized_view_generat
 # rubocop:disable RSpec/FilePath
 RSpec.describe Metka::Generators::Strategies::MaterializedViewGenerator, type: :generator do
   destination File.expand_path('../../tmp', __dir__)
-  subject { migration_file('db/migrate/create_tagged_notes_materialized_view.rb') }
+  # Pathname, not String: `exist` only reads the file path itself when the
+  # subject responds to `exist?`, otherwise it goes through a removed API
+  subject { Pathname.new(migration_file('db/migrate/create_tagged_notes_materialized_view.rb')) }
 
   let(:args) { ['--source-table-name=notes'] }
 
