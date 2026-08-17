@@ -12,45 +12,44 @@ on:
     - "*.md"
     - "**/*.md"
 
+permissions:
+  contents: read
+
 jobs:
   markdownlint:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v5
     - uses: ruby/setup-ruby@v1
       with:
-        ruby-version: 2.7
+        ruby-version: "3.4"
     - name: Run Markdown linter
       run: |
         gem install mdl
         mdl README.md .github/*.md
   rubocop:
     runs-on: ubuntu-latest
+    env:
+      BUNDLE_GEMFILE: gemfiles/rubocop.gemfile
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v5
     - uses: ruby/setup-ruby@v1
       with:
-        ruby-version: 2.7
+        ruby-version: "3.4"
+        bundler-cache: true
     - name: Lint Markdown files with RuboCop
-      run: |
-        gem install bundler
-        bundle install --gemfile gemfiles/rubocop.gemfile --jobs 4 --retry 3
-        bundle exec --gemfile gemfiles/rubocop.gemfile rubocop -c .rubocop-md.yml
+      run: bundle exec rubocop -c .rubocop-md.yml
   forspell:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v5
     - name: Install Hunspell
       run: |
-        sudo apt-get install hunspell
+        sudo apt-get update
+        sudo apt-get -yqq install hunspell
     - uses: ruby/setup-ruby@v1
       with:
-        ruby-version: 2.7
-    - name: Cache installed gems
-      uses: actions/cache@v1
-      with:
-        path: /home/runner/.rubies/ruby-2.7.0/lib/ruby/gems/2.7.0
-        key: gems-cache-${{ runner.os }}
+        ruby-version: "3.4"
     - name: Install Forspell
       run: gem install forspell
     - name: Run Forspell

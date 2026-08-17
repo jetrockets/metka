@@ -8,10 +8,16 @@ on:
   schedule:
     - cron: "0 3 * * 1" # Every monday at 3 AM
 
+permissions:
+  contents: read
+
 jobs:
   rspec:
     runs-on: ubuntu-latest
+    name: Ruby ${{ matrix.ruby }} / ${{ matrix.gemfile }} / PostgreSQL ${{ matrix.postgres }}
+    continue-on-error: ${{ matrix.allow-failure || false }}
     env:
+      BUNDLE_GEMFILE: ${{ matrix.gemfile }}
       BUNDLE_JOBS: 4
       BUNDLE_RETRY: 3
       CI: true
@@ -20,29 +26,23 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        ruby: ["2.7"]
-        postgres: ["12"]
-        gemfile: [
-          "gemfiles/rails61.gemfile"
-        ]
-        fx: ["false"]
         include:
-        - ruby: "3.0"
-          postgres: "13"
+        - ruby: "3.4"
+          postgres: "18"
+          gemfile: "gemfiles/rails81.gemfile"
+        - ruby: "3.4"
+          postgres: "17"
+          gemfile: "gemfiles/rails80.gemfile"
+        - ruby: "3.3"
+          postgres: "17"
+          gemfile: "gemfiles/rails72.gemfile"
+        - ruby: "3.2"
+          postgres: "16"
+          gemfile: "gemfiles/rails71.gemfile"
+        - ruby: "3.4"
+          postgres: "18"
           gemfile: "gemfiles/railsmain.gemfile"
-          fx: "false"
-        - ruby: "2.6"
-          postgres: "12"
-          gemfile: "gemfiles/rails61.gemfile"
-          fx: "false"
-        - ruby: "2.6"
-          postgres: "12"
-          gemfile: "gemfiles/rails6.gemfile"
-          fx: "false"
-        - ruby: "2.5"
-          postgres: "11"
-          gemfile: "gemfiles/rails52.gemfile"
-          fx: "false"
+          allow-failure: true
     services:
       postgres:
         image: postgres:${{ matrix.postgres }}
@@ -55,32 +55,14 @@ jobs:
           --health-timeout 5s
           --health-retries 5
     steps:
-    - uses: actions/checkout@v2
-    - uses: actions/cache@v1
-      with:
-        path: /home/runner/bundle
-        key: bundle-${{ matrix.ruby }}-${{ matrix.gemfile }}-${{ hashFiles(matrix.gemfile) }}-${{ hashFiles('**/*.gemspec') }}
-        restore-keys: |
-          bundle-${{ matrix.ruby }}-${{ matrix.gemfile }}-
-    - name: Install system deps
-      run: |
-        sudo apt-get update
-        sudo apt-get -yqq install libpq-dev
+    - uses: actions/checkout@v5
     - uses: ruby/setup-ruby@v1
       with:
         ruby-version: ${{ matrix.ruby }}
-    - name: Bundle install
-      run: |
-        bundle config path /home/runner/bundle
-        bundle config --global gemfile ${{ matrix.gemfile }}
-        bundle install
-        bundle update
+        bundler-cache: true
     - name: Prepare test database
       run: |
         bundle exec rake dummy:db:create
         bundle exec rake dummy:db:migrate:reset
     - name: Run RSpec
-      env:
-        USE_FX: ${{ matrix.fx }}
-      run: |
-        bundle exec rspec -f d --force-color
+      run: bundle exec rspec -f d --force-color

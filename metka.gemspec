@@ -24,8 +24,9 @@ Gem::Specification.new do |spec|
   spec.executables = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ['lib']
 
-  spec.add_dependency 'dry-configurable', '>= 0.8'
-  spec.add_dependency 'rails', '>= 5.2'
+  # `setting :name, default: value` is only supported since 0.13
+  spec.add_dependency 'dry-configurable', '>= 0.13'
+  spec.add_dependency 'rails', '>= 7.1'
 
   spec.add_development_dependency 'ammeter', '>= 1.1'
   spec.add_development_dependency 'pry', '>= 0.12.2'
@@ -38,5 +39,5 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'timecop', '>= 0.9'
   spec.add_development_dependency 'database_cleaner', '>= 1.7'
   spec.add_development_dependency 'jetrockets-standard', '>= 1.1'
-  spec.required_ruby_version = '>= 2.5'
+  spec.required_ruby_version = '>= 3.2'
 end
