@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'singleton'
+require "singleton"
 
 module Metka
   ##
@@ -37,7 +37,7 @@ module Metka
     def gsub_quote_pattern!(tag_list, value, pattern)
       value.gsub!(pattern) {
         tag_list.add(Regexp.last_match[2])
-        ''
+        ""
       }
     end
 

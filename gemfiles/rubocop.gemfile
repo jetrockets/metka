@@ -1,7 +1,4 @@
 source "https://rubygems.org" do
   gem "rubocop-md", "~> 1.0"
-  gem "jetrockets-standard"
-  # rubocop-factory_bot >= 2.26 needs RuboCop >= 1.53, but jetrockets-standard
-  # holds RuboCop at 1.52 through standard ~> 1.29
-  gem "rubocop-factory_bot", "< 2.26"
+  gem "rubocop-rails-omakase", "~> 1.1"
 end

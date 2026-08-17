@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'test_helper'
+require "test_helper"
 
 class MetkaGenericParserTest < ActiveSupport::TestCase
   setup do
@@ -12,23 +12,23 @@ class MetkaGenericParserTest < ActiveSupport::TestCase
     Metka.config.delimiter = @delimiter
   end
 
-  test 'returns empty array if empty tag is passed' do
-    ['', ' ', nil, []].each do |tag|
+  test "returns empty array if empty tag is passed" do
+    [ "", " ", nil, [] ].each do |tag|
       assert_empty @parser.call(tag)
     end
   end
 
-  test 'separates tags by comma' do
-    assert_equal %w[cool data I have], @parser.call('cool,data,,I,have').to_a
+  test "separates tags by comma" do
+    assert_equal %w[cool data I have], @parser.call("cool,data,,I,have").to_a
   end
 
-  test 'works with utf8 delimiter' do
-    Metka.config.delimiter = '的'
+  test "works with utf8 delimiter" do
+    Metka.config.delimiter = "\u7684"
 
-    assert_equal %w[我 东西可能是不见了，还好有备份], @parser.call('我的东西可能是不见了，还好有备份').to_a
+    assert_equal %w[我 东西可能是不见了，还好有备份], @parser.call("\u6211\u7684\u4E1C\u897F\u53EF\u80FD\u662F\u4E0D\u89C1\u4E86\uFF0C\u8FD8\u597D\u6709\u5907\u4EFD").to_a
   end
 
-  test 'escapes single quote' do
-    assert_equal ['I, have', 'code'], @parser.call("'I, have', code").to_a
+  test "escapes single quote" do
+    assert_equal [ "I, have", "code" ], @parser.call("'I, have', code").to_a
   end
 end

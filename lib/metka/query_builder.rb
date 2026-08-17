@@ -1,9 +1,9 @@
 # frozen_string_literal: true
 
-require 'arel'
-require_relative 'query_builder/base_query'
-require_relative 'query_builder/any_tags_query'
-require_relative 'query_builder/all_tags_query'
+require "arel"
+require_relative "query_builder/base_query"
+require_relative "query_builder/any_tags_query"
+require_relative "query_builder/all_tags_query"
 
 module Metka
   class QueryBuilder
