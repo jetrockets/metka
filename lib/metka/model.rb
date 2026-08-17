@@ -20,71 +20,84 @@ module Metka
     end
 
     def included(base)
-      columns = @columns
-      parser =
-        ->(tags) {
-          @options[:parser] ? @options[:parser].call(tags) : Metka.config.parser.instance.call(tags)
-        }
+      define_column_scopes(base)
+      define_tagged_with_scope(base)
+      define_tag_clouds(base)
+      define_tag_list_accessors(base)
+    end
 
-      # @param model [ActiveRecord::Base] model on which to execute search
-      # @param tags [Object] list of tags, representation depends on parser used
-      # @param options [Hash] options
-      #   @option :join_operator [Metka::AND, Metka::OR]
-      #   @option :on [Array<String>] list of column names to include in query
-      # @returns ViewPost::ActiveRecord_Relation
-      tagged_with_lambda =
-        ->(model, tags, **options) {
-          cols = options.delete(:on)
-          parsed_tag_list = parser.call(tags)
+    private
 
-          return model if parsed_tag_list.empty?
-
-          request = ::Metka::QueryBuilder.new.call(model, cols, parsed_tag_list, options)
-          model.where(request)
-        }
-
-      base.class_eval do
-        columns.each do |column|
-          scope "with_all_#{column}", ->(tags) { tagged_with(tags, on: [ column ]) }
-          scope "with_any_#{column}", ->(tags) { tagged_with(tags, on: [ column ], any: true) }
-          scope "without_all_#{column}", ->(tags) { tagged_with(tags, on: [ column ], exclude: true) }
-          scope "without_any_#{column}", ->(tags) { tagged_with(tags, on: [ column ], any: true, exclude: true) }
-        end
-
-        unless respond_to?(:tagged_with)
-          scope :tagged_with, ->(tags = "", options = {}) {
-            options[:join_operator] ||= ::Metka::OR
-            options = { any: false }.merge(options)
-            options[:on] ||= columns
-
-            tagged_with_lambda.call(self, tags, **options)
-          }
-        end
+    def define_column_scopes(base)
+      @columns.each do |column|
+        base.scope "with_all_#{column}", ->(tags) { tagged_with(tags, on: [ column ]) }
+        base.scope "with_any_#{column}", ->(tags) { tagged_with(tags, on: [ column ], any: true) }
+        base.scope "without_all_#{column}", ->(tags) { tagged_with(tags, on: [ column ], exclude: true) }
+        base.scope "without_any_#{column}", ->(tags) { tagged_with(tags, on: [ column ], any: true, exclude: true) }
       end
+    end
 
-      base.define_singleton_method :metka_cloud do |*columns|
-        return [] if columns.blank?
+    # @param tags [Object] list of tags, representation depends on the parser used
+    # @param options [Hash] options
+    #   @option :any [Boolean] match any of the tags instead of all of them
+    #   @option :exclude [Boolean] negate the match
+    #   @option :join_operator [Metka::AND, Metka::OR] how to combine multiple columns
+    #   @option :on [Array<String>] column names to search
+    # @return [ActiveRecord::Relation]
+    def define_tagged_with_scope(base)
+      return if base.respond_to?(:tagged_with)
 
-        prepared_unnest = columns.map { |column| "#{table_name}.#{column}" }.join(" || ")
+      columns = @columns
+      parser = tag_parser
+
+      base.scope :tagged_with, ->(tags = "", options = {}) {
+        options = { any: false }.merge(options)
+        options[:join_operator] ||= ::Metka::OR
+        tag_columns = options.delete(:on) || columns
+
+        tag_list = parser.call(tags)
+        next self if tag_list.empty?
+
+        where(::Metka::QueryBuilder.new.call(self, tag_columns, tag_list, options))
+      }
+    end
+
+    def define_tag_clouds(base)
+      base.define_singleton_method :metka_cloud do |*cloud_columns|
+        return [] if cloud_columns.blank?
+
+        prepared_unnest = cloud_columns.map { |column| "#{table_name}.#{column}" }.join(" || ")
         subquery = all.select("UNNEST(#{prepared_unnest}) AS tag_name")
 
         unscoped.from(subquery).group(:tag_name).pluck(:tag_name, Arel.sql("COUNT(*) AS taggings_count"))
       end
 
-      columns.each do |column|
-        base.define_method(column.singularize + "_list=") do |v|
-          write_attribute(column, parser.call(v).to_a)
+      @columns.each do |column|
+        base.define_singleton_method(:"#{column.singularize}_cloud") { metka_cloud(column) }
+      end
+    end
+
+    def define_tag_list_accessors(base)
+      parser = tag_parser
+
+      @columns.each do |column|
+        base.define_method(:"#{column.singularize}_list=") do |tags|
+          write_attribute(column, parser.call(tags).to_a)
           write_attribute(column, nil) if send(column).empty?
         end
 
-        base.define_method(column.singularize + "_list") do
+        base.define_method(:"#{column.singularize}_list") do
           parser.call(send(column))
         end
-
-        base.define_singleton_method :"#{column.singularize}_cloud" do
-          metka_cloud(column)
-        end
       end
+    end
+
+    # Metka.config.parser is looked up on every call so that reconfiguring it
+    # after a model has been included still takes effect.
+    def tag_parser
+      custom = @options[:parser]
+
+      ->(tags) { (custom || Metka.config.parser.instance).call(tags) }
     end
   end
 end
