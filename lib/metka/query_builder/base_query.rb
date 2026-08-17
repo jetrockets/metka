@@ -27,22 +27,6 @@ module Metka
 
         Arel::Nodes::InfixOperation.new(infix_operator, model.arel_table[column_name], value)
       end
-      # column_cast = Arel::Nodes::NamedFunction.new(
-      #   'CAST',
-      #   [model.arel_table[column_name].as('text[]')]
-      # )
-
-      # value = Arel::Nodes::SqlLiteral.new(
-      #   ActiveRecord::Base.sanitize_sql_for_conditions(['ARRAY[?]::varchar[]', tag_list.to_a])
-      # )
-
-      # value_cast = Arel::Nodes::NamedFunction.new(
-      #   'CAST',
-      #   [value.as('text[]')]
-      # )
-
-      # # Arel::Nodes::InfixOperation.new(infix_operator, column_cast, value_cast)
-      # Arel::Nodes::InfixOperation.new(infix_operator, model.arel_table[column_name], value)
     end
   end
 end
