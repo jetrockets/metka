@@ -7,10 +7,12 @@ class TaggedMaterializedViewPostTest < ActiveSupport::TestCase
   TAG2 = "tag2"
   UNUSED_TAG = "tag3"
 
+  # These rows stay in setup rather than moving to fixtures: the materialized
+  # view is refreshed by a trigger on INSERT, UPDATE and DELETE, so going
+  # through the write path is the behaviour under test.
   setup do
-    @user = User.create(name: Faker::Name.name)
-    @materialized_view_post_1 = MaterializedViewPost.create(user_id: @user.id, tag_list: TAG1)
-    @materialized_view_post_2 = MaterializedViewPost.create(user_id: @user.id, tag_list: [ TAG1, TAG2 ])
+    @materialized_view_post_1 = MaterializedViewPost.create!(user: users(:david), tag_list: TAG1)
+    @materialized_view_post_2 = MaterializedViewPost.create!(user: users(:david), tag_list: [ TAG1, TAG2 ])
   end
 
   test "has objects" do
@@ -32,7 +34,7 @@ class TaggedMaterializedViewPostTest < ActiveSupport::TestCase
 
   test "increases the counter on post with tag addition" do
     assert_difference -> { taggings_count(TAG2) }, 1 do
-      MaterializedViewPost.create(user_id: @user.id, tag_list: TAG2)
+      MaterializedViewPost.create!(user: users(:david), tag_list: TAG2)
     end
   end
 

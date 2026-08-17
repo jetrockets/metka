@@ -8,7 +8,6 @@ require File.expand_path("dummy/config/environment", __dir__)
 
 require "active_support/test_case"
 
-require "faker"
 require "timecop"
 require "metka"
 
@@ -19,5 +18,8 @@ class ActiveSupport::TestCase
   # the records built by one test are never visible to the next one.
   include ActiveRecord::TestFixtures
 
+  self.fixture_paths = [ File.expand_path("fixtures", __dir__) ]
   self.use_transactional_tests = true
+
+  fixtures :all
 end
