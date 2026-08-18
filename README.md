@@ -397,26 +397,29 @@ Metka ships a [benchmark suite](benchmark/) comparing it to
 [tag_columns](https://github.com/hopsoft/tag_columns) on a shared dataset:
 10,000 posts per gem, 5 tags per post from a 100-tag vocabulary, identical
 seeded tag assignments. Iterations per second, higher is better (Ruby 4.0,
-Rails 8.1, PostgreSQL 18):
+Rails 8.1, PostgreSQL 18). The metka numbers are with the recommended
+[Table Strategy](#table-strategy-with-triggers-recommended) aggregate in
+place; tag queries never touch the aggregate, so the query rows apply with
+or without it:
 
 | Operation | metka | taggable-array | tag_columns | acts-as-taggable-on | gutentag |
 | --- | --- | --- | --- | --- | --- |
-| Query: ALL of 2 tags, load records | 6,393 | 6,606 | 970 | 2,380 | 1,292 |
-| Query: ANY of 2 tags, count | 4,629 | 4,625 | 679 | 791 | 1,026 |
-| Tag cloud over all posts | 209 | 197 | 194 | 126 | 158 |
-| Create post with 5 tags | 1,631 | 1,636 | 1,579 | 196 | 183 |
-| Replace tags of existing post | 8,122 | 7,480 | 7,158 | 186 | 176 |
-| Bulk seed 10k posts | 0.21 s | 0.17 s | 0.16 s | 51.6 s | 49.5 s |
-| Storage, tables + indexes | 2.68 MB | 2.68 MB | 2.68 MB | 17.64 MB | 11.87 MB |
+| Query: ALL of 2 tags, load records | 6,003 | 6,725 | 986 | 2,292 | 1,299 |
+| Query: ANY of 2 tags, count | 4,575 | 4,479 | 678 | 788 | 1,027 |
+| Tag cloud over all posts | 9,025 | 204 | 198 | 127 | 161 |
+| Create post with 5 tags | 1,495 | 1,634 | 1,599 | 204 | 196 |
+| Replace tags of existing post | 8,131 | 7,766 | 7,396 | 190 | 183 |
+| Bulk seed 10k posts | 0.17 s | 0.17 s | 0.16 s | 45.6 s | 50.2 s |
+| Storage, tables + indexes | 2.75 MB | 2.68 MB | 2.68 MB | 18.17 MB | 10.97 MB |
 
-The suite also measures what maintaining the table strategy's tag-cloud
-aggregate costs on the same dataset — reads via the summary table against the
-write overhead of keeping it fresh:
+The suite also measures what maintaining the aggregate costs on the same
+dataset — reads served from the summary table against the write overhead of
+keeping it fresh, which stays within measurement noise:
 
 | Tag-cloud aggregate | Cloud read | Create post | Replace tags | Bulk seed | Storage |
 | --- | --- | --- | --- | --- | --- |
-| none (live aggregation) | 209 | 1,631 | 8,122 | 0.21 s | 2.68 MB |
-| table | 9,337 | 1,524 | 7,696 | 0.17 s | 2.75 MB |
+| none (live aggregation) | 212 | 1,619 | 8,293 | 0.21 s | 2.68 MB |
+| table | 9,025 | 1,495 | 8,131 | 0.17 s | 2.75 MB |
 
 Keep in mind that these results alone can't prove one solution better than
 the others — each gem has unique features. The join-table gems maintain a
