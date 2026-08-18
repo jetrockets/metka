@@ -375,7 +375,7 @@ And you can also create `TaggedNote` model to work with the view as with a Rails
 
 ### Table Strategy with Triggers
 
-Data about taggings will be maintained in a real table with the same two columns as the views above, kept up to date by statement-level triggers. Instead of recomputing the whole aggregation like the Materialized View Strategy does on every refresh, the triggers read the statement's transition tables and apply per-tag deltas, so a write statement only touches the counters of the tags it actually changed. That keeps writes within measurement noise of an untriggered table while reads stay as fast as a plain indexed table — the trade-off is that it is an ordinary table, so anything that writes `NAME_OF_TABLE_WITH_TAGS` without firing the triggers (`TRUNCATE`, restoring from a dump) leaves the counters stale until you reseed the table by hand. The same ownership caveat as for raw column writes applies: keeping the counters honest is your responsibility the moment you go around the write path.
+Data about taggings will be maintained in a real table with the same two columns as the views above, kept up to date by statement-level triggers. Instead of recomputing the whole aggregation like the Materialized View Strategy does on every refresh, the triggers read the statement's transition tables and apply per-tag deltas, so a write statement only touches the counters of the tags it actually changed. That keeps writes within measurement noise of a table with no triggers at all while reads stay as fast as a plain indexed table — the trade-off is that it is an ordinary table, so anything that writes `NAME_OF_TABLE_WITH_TAGS` without firing the triggers (`TRUNCATE`, restoring from a dump) leaves the counters stale until you reseed the table by hand. The same ownership caveat as for raw column writes applies: keeping the counters honest is your responsibility the moment you go around the write path.
 
 ```bash
 rails g metka:strategies:table --source-table-name=NAME_OF_TABLE_WITH_TAGS --source-columns=NAME_OF_COLUMN_1 NAME_OF_COLUMN_2 --table-name=NAME_OF_RESULTING_TABLE
@@ -445,13 +445,23 @@ Rails 8.1, PostgreSQL 18):
 
 | Operation | metka | taggable-array | tag_columns | acts-as-taggable-on | gutentag |
 | --- | --- | --- | --- | --- | --- |
-| Query: ALL of 2 tags, load records | 6,183 | 6,865 | 977 | 2,401 | 1,365 |
-| Query: ANY of 2 tags, count | 4,730 | 4,795 | 676 | 794 | 974 |
-| Tag cloud over all posts | 213 | 198 | 194 | 128 | 158 |
-| Create post with 5 tags | 1,604 | 1,634 | 1,659 | 203 | 197 |
-| Replace tags of existing post | 8,223 | 7,754 | 7,342 | 143 | 177 |
-| Bulk seed 10k posts | 0.21 s | 0.21 s | 0.21 s | 53.5 s | 49.8 s |
-| Storage, tables + indexes | 2.68 MB | 2.68 MB | 2.68 MB | 17.98 MB | 12.03 MB |
+| Query: ALL of 2 tags, load records | 6,393 | 6,606 | 970 | 2,380 | 1,292 |
+| Query: ANY of 2 tags, count | 4,629 | 4,625 | 679 | 791 | 1,026 |
+| Tag cloud over all posts | 209 | 197 | 194 | 126 | 158 |
+| Create post with 5 tags | 1,631 | 1,636 | 1,579 | 196 | 183 |
+| Replace tags of existing post | 8,122 | 7,480 | 7,158 | 186 | 176 |
+| Bulk seed 10k posts | 0.21 s | 0.17 s | 0.16 s | 51.6 s | 49.5 s |
+| Storage, tables + indexes | 2.68 MB | 2.68 MB | 2.68 MB | 17.64 MB | 11.87 MB |
+
+The suite also measures what each tag-cloud strategy costs on the same
+dataset — reads via the maintained aggregate against the write overhead of
+keeping it fresh:
+
+| Tag-cloud strategy | Cloud read | Create post | Replace tags | Bulk seed | Storage |
+| --- | --- | --- | --- | --- | --- |
+| none (live aggregation) | 209 | 1,631 | 8,122 | 0.21 s | 2.68 MB |
+| materialized_view | 9,082 | 133 | 173 | 0.24 s | 2.78 MB |
+| table | 9,337 | 1,524 | 7,696 | 0.17 s | 2.75 MB |
 
 Keep in mind that these results alone can't prove one solution better than
 the others — each gem has unique features. The join-table gems maintain a
