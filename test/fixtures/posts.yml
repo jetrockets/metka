@@ -12,7 +12,9 @@ rails_post:
   tags: [ ruby, rails, react ]
   categories: [ programming, backend ]
 
+# categories deliberately left unset: a NULL array column is what a plain
+# create produces when a model does not tag every column, and it is the case
+# that silently vanished from exclude queries before the COALESCE fix.
 php_post:
   user: david
   tags: [ php, yii2, angular ]
-  categories: []
