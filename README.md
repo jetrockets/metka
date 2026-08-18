@@ -265,29 +265,9 @@ singleton class itself, and `.instance` is called on it at parse time.
 
 ## Tag Cloud Strategies
 
-There are two strategies to get tag statistics. The ActiveRecord Strategy is what you get out of the box with zero setup; for anything beyond occasional clouds on small tables, the [Table Strategy](#table-strategy-with-triggers-recommended) is the recommended default — it reads like a pre-aggregated table and writes within measurement noise of having no strategy at all (see the [benchmark](#benchmark-comparison)).
+There are two strategies to get tag statistics. The [Table Strategy](#table-strategy-with-triggers-default) is the default choice — it reads like a pre-aggregated table and writes within measurement noise of having no strategy at all (see the [benchmark](#benchmark-comparison)). The ActiveRecord Strategy needs zero setup and is fine for occasional clouds on small tables.
 
-### ActiveRecord Strategy (Zero Setup)
-
-Tagging statistics are available via class methods on any model that includes `Metka::Model`. You can build a cloud for a single tagged column or for several at once — in the latter case each tag's count is summed across the given columns. The ActiveRecord strategy is the easiest to use since it requires no additional code, but it is the slowest one on SELECT.
-
-```ruby
-class Book < ActiveRecord::Base
-  include Metka::Model(columns: %w[authors co_authors])
-end
-
-author_cloud = Book.author_cloud
-#=> [["L.N. Tolstoy", 3], ["F.M. Dostoevsky", 6]]
-co_author_cloud = Book.co_author_cloud
-#=> [["A.P. Chekhov", 5], ["N.V. Gogol", 8], ["L.N. Tolstoy", 2]]
-summary_cloud = Book.metka_cloud('authors', 'co_authors')
-#=> [["L.N. Tolstoy", 5], ["F.M. Dostoevsky", 6], ["A.P. Chekhov", 5], ["N.V. Gogol", 8]]
-```
-
-`metka_cloud` accepts only columns declared in `Metka::Model`; anything else
-raises `ArgumentError`.
-
-### Table Strategy with Triggers (Recommended)
+### Table Strategy with Triggers (Default)
 
 Data about taggings will be maintained in a real table with two columns, `tag_name` and `taggings_count`, kept up to date by statement-level triggers. Instead of recomputing the whole aggregation on every write, the triggers read the statement's transition tables and apply per-tag deltas, so a write statement only touches the counters of the tags it actually changed. That keeps writes within measurement noise of a table with no triggers at all while reads stay as fast as a plain indexed table — the trade-off is that it is an ordinary table, so anything that writes `NAME_OF_TABLE_WITH_TAGS` without firing the triggers (`TRUNCATE`, restoring from a dump) leaves the counters stale until you reseed the table by hand. The same ownership caveat as for raw column writes applies: keeping the counters honest is your responsibility the moment you go around the write path.
 
@@ -353,6 +333,26 @@ INSERT INTO tagged_songs (tag_name, taggings_count)
 COMMIT;
 ```
 
+### ActiveRecord Strategy (Zero Setup)
+
+Tagging statistics are available via class methods on any model that includes `Metka::Model`. You can build a cloud for a single tagged column or for several at once — in the latter case each tag's count is summed across the given columns. The ActiveRecord strategy is the easiest to use since it requires no additional code, but it is the slowest one on SELECT.
+
+```ruby
+class Book < ActiveRecord::Base
+  include Metka::Model(columns: %w[authors co_authors])
+end
+
+author_cloud = Book.author_cloud
+#=> [["L.N. Tolstoy", 3], ["F.M. Dostoevsky", 6]]
+co_author_cloud = Book.co_author_cloud
+#=> [["A.P. Chekhov", 5], ["N.V. Gogol", 8], ["L.N. Tolstoy", 2]]
+summary_cloud = Book.metka_cloud('authors', 'co_authors')
+#=> [["L.N. Tolstoy", 5], ["F.M. Dostoevsky", 6], ["A.P. Chekhov", 5], ["N.V. Gogol", 8]]
+```
+
+`metka_cloud` accepts only columns declared in `Metka::Model`; anything else
+raises `ArgumentError`.
+
 ## Inspired by
 
 1. [ActsAsTaggableOn](https://github.com/mbleigh/acts-as-taggable-on)
@@ -409,17 +409,13 @@ Rails 8.1, PostgreSQL 18):
 | Bulk seed 10k posts | 0.21 s | 0.17 s | 0.16 s | 51.6 s | 49.5 s |
 | Storage, tables + indexes | 2.68 MB | 2.68 MB | 2.68 MB | 17.64 MB | 11.87 MB |
 
-The suite also measures what maintaining a tag-cloud aggregate costs on the
-same dataset — reads via the maintained aggregate against the write overhead
-of keeping it fresh. The trigger-refreshed materialized view is a strategy
-Metka used to ship; it lost to the summary table on every write metric, which
-is why the gem now provides only the table generator, and the row stays here
-as the comparison behind that decision:
+The suite also measures what maintaining the table strategy's tag-cloud
+aggregate costs on the same dataset — reads via the summary table against the
+write overhead of keeping it fresh:
 
 | Tag-cloud aggregate | Cloud read | Create post | Replace tags | Bulk seed | Storage |
 | --- | --- | --- | --- | --- | --- |
 | none (live aggregation) | 209 | 1,631 | 8,122 | 0.21 s | 2.68 MB |
-| materialized view (no longer shipped) | 9,082 | 133 | 173 | 0.24 s | 2.78 MB |
 | table | 9,337 | 1,524 | 7,696 | 0.17 s | 2.75 MB |
 
 Keep in mind that these results alone can't prove one solution better than
