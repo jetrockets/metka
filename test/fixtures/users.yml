@@ -1,0 +1,14 @@
+# User is tagged through CustomParser, which splits on "|" instead of ",".
+# The three rows below are deliberately distinct: only david carries
+# "developer" or "senior", so scopes matching those have one obvious answer.
+
+david:
+  name: David
+  tags: [ developer, senior ]
+
+jason:
+  name: Jason
+  tags: [ junior ]
+
+sam:
+  name: Sam
