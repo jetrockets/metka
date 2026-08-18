@@ -8,7 +8,6 @@ require File.expand_path("dummy/config/environment", __dir__)
 
 require "active_support/test_case"
 
-require "timecop"
 require "metka"
 
 require "minitest/autorun"
