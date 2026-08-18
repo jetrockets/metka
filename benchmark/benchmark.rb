@@ -169,17 +169,17 @@ run_bundled_migrations("gutentag")
 # statement since the sqlite3 driver runs one statement per call.
 if SQLITE
   conn = ActiveRecord::Base.connection
-  conn.execute("DROP TABLE IF EXISTS tagged_metka_table_posts")
+  conn.execute("DROP TABLE IF EXISTS metka_table_posts_tags_cloud")
 
   conn.execute(<<~SQL)
-    CREATE TABLE tagged_metka_table_posts (
+    CREATE TABLE metka_table_posts_tags_cloud (
       tag_name varchar PRIMARY KEY,
       taggings_count bigint NOT NULL
     );
   SQL
 
   conn.execute(<<~SQL)
-    INSERT INTO tagged_metka_table_posts (tag_name, taggings_count)
+    INSERT INTO metka_table_posts_tags_cloud (tag_name, taggings_count)
       SELECT value, COUNT(*)
       FROM metka_table_posts, json_each(metka_table_posts.tags)
       GROUP BY value;
@@ -190,7 +190,7 @@ if SQLITE
     AFTER INSERT ON metka_table_posts
     FOR EACH ROW
     BEGIN
-      INSERT INTO tagged_metka_table_posts (tag_name, taggings_count)
+      INSERT INTO metka_table_posts_tags_cloud (tag_name, taggings_count)
       SELECT value, 1 FROM json_each(NEW.tags) WHERE true
       ON CONFLICT (tag_name)
       DO UPDATE SET taggings_count = taggings_count + 1;
@@ -202,17 +202,17 @@ if SQLITE
     AFTER UPDATE OF tags ON metka_table_posts
     FOR EACH ROW
     BEGIN
-      INSERT INTO tagged_metka_table_posts (tag_name, taggings_count)
+      INSERT INTO metka_table_posts_tags_cloud (tag_name, taggings_count)
       SELECT value, 1 FROM json_each(NEW.tags) WHERE true
       ON CONFLICT (tag_name)
       DO UPDATE SET taggings_count = taggings_count + 1;
 
-      UPDATE tagged_metka_table_posts
+      UPDATE metka_table_posts_tags_cloud
       SET taggings_count = taggings_count -
         (SELECT COUNT(*) FROM json_each(OLD.tags) WHERE value = tag_name)
       WHERE tag_name IN (SELECT value FROM json_each(OLD.tags));
 
-      DELETE FROM tagged_metka_table_posts WHERE taggings_count <= 0;
+      DELETE FROM metka_table_posts_tags_cloud WHERE taggings_count <= 0;
     END;
   SQL
 
@@ -221,12 +221,12 @@ if SQLITE
     AFTER DELETE ON metka_table_posts
     FOR EACH ROW
     BEGIN
-      UPDATE tagged_metka_table_posts
+      UPDATE metka_table_posts_tags_cloud
       SET taggings_count = taggings_count -
         (SELECT COUNT(*) FROM json_each(OLD.tags) WHERE value = tag_name)
       WHERE tag_name IN (SELECT value FROM json_each(OLD.tags));
 
-      DELETE FROM tagged_metka_table_posts WHERE taggings_count <= 0;
+      DELETE FROM metka_table_posts_tags_cloud WHERE taggings_count <= 0;
     END;
   SQL
 
@@ -284,29 +284,29 @@ if SQLITE
   SQL
 else
 ActiveRecord::Base.connection.execute(<<~SQL)
-  DROP TABLE IF EXISTS tagged_metka_table_posts;
-  CREATE TABLE tagged_metka_table_posts (
+  DROP TABLE IF EXISTS metka_table_posts_tags_cloud;
+  CREATE TABLE metka_table_posts_tags_cloud (
     tag_name varchar PRIMARY KEY,
     taggings_count bigint NOT NULL
   );
 
-  INSERT INTO tagged_metka_table_posts (tag_name, taggings_count)
+  INSERT INTO metka_table_posts_tags_cloud (tag_name, taggings_count)
     SELECT tag_name, COUNT(*) AS taggings_count
     FROM (SELECT UNNEST(tags) AS tag_name FROM metka_table_posts) subquery
     GROUP BY tag_name;
 
-  CREATE OR REPLACE FUNCTION metka_ins_tagged_metka_table_posts() RETURNS trigger LANGUAGE plpgsql AS $$
+  CREATE OR REPLACE FUNCTION metka_ins_metka_table_posts_tags_cloud() RETURNS trigger LANGUAGE plpgsql AS $$
     BEGIN
-      INSERT INTO tagged_metka_table_posts (tag_name, taggings_count)
+      INSERT INTO metka_table_posts_tags_cloud (tag_name, taggings_count)
       SELECT tag_name, COUNT(*)
       FROM (SELECT UNNEST(tags) AS tag_name FROM new_rows) subquery
       GROUP BY tag_name
       ON CONFLICT (tag_name)
-      DO UPDATE SET taggings_count = tagged_metka_table_posts.taggings_count + EXCLUDED.taggings_count;
+      DO UPDATE SET taggings_count = metka_table_posts_tags_cloud.taggings_count + EXCLUDED.taggings_count;
       RETURN NULL;
     END $$;
 
-  CREATE OR REPLACE FUNCTION metka_upd_tagged_metka_table_posts() RETURNS trigger LANGUAGE plpgsql AS $$
+  CREATE OR REPLACE FUNCTION metka_upd_metka_table_posts_tags_cloud() RETURNS trigger LANGUAGE plpgsql AS $$
     BEGIN
       WITH deltas AS (
         SELECT tag_name, SUM(d) AS delta
@@ -318,27 +318,27 @@ ActiveRecord::Base.connection.execute(<<~SQL)
         GROUP BY tag_name
         HAVING SUM(d) <> 0
       )
-      INSERT INTO tagged_metka_table_posts (tag_name, taggings_count)
+      INSERT INTO metka_table_posts_tags_cloud (tag_name, taggings_count)
       SELECT tag_name, delta FROM deltas
       ON CONFLICT (tag_name)
-      DO UPDATE SET taggings_count = tagged_metka_table_posts.taggings_count + EXCLUDED.taggings_count;
+      DO UPDATE SET taggings_count = metka_table_posts_tags_cloud.taggings_count + EXCLUDED.taggings_count;
 
-      DELETE FROM tagged_metka_table_posts WHERE taggings_count <= 0;
+      DELETE FROM metka_table_posts_tags_cloud WHERE taggings_count <= 0;
       RETURN NULL;
     END $$;
 
-  CREATE OR REPLACE FUNCTION metka_del_tagged_metka_table_posts() RETURNS trigger LANGUAGE plpgsql AS $$
+  CREATE OR REPLACE FUNCTION metka_del_metka_table_posts_tags_cloud() RETURNS trigger LANGUAGE plpgsql AS $$
     BEGIN
-      UPDATE tagged_metka_table_posts
-      SET taggings_count = tagged_metka_table_posts.taggings_count - removed.taggings_count
+      UPDATE metka_table_posts_tags_cloud
+      SET taggings_count = metka_table_posts_tags_cloud.taggings_count - removed.taggings_count
       FROM (
         SELECT tag_name, COUNT(*) AS taggings_count
         FROM (SELECT UNNEST(tags) AS tag_name FROM old_rows) subquery
         GROUP BY tag_name
       ) removed
-      WHERE tagged_metka_table_posts.tag_name = removed.tag_name;
+      WHERE metka_table_posts_tags_cloud.tag_name = removed.tag_name;
 
-      DELETE FROM tagged_metka_table_posts WHERE taggings_count <= 0;
+      DELETE FROM metka_table_posts_tags_cloud WHERE taggings_count <= 0;
       RETURN NULL;
     END $$;
 
@@ -346,19 +346,19 @@ ActiveRecord::Base.connection.execute(<<~SQL)
   AFTER INSERT ON metka_table_posts
   REFERENCING NEW TABLE AS new_rows
   FOR EACH STATEMENT
-  EXECUTE PROCEDURE metka_ins_tagged_metka_table_posts();
+  EXECUTE PROCEDURE metka_ins_metka_table_posts_tags_cloud();
 
   CREATE TRIGGER metka_upd_on_metka_table_posts_tags
   AFTER UPDATE ON metka_table_posts
   REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows
   FOR EACH STATEMENT
-  EXECUTE PROCEDURE metka_upd_tagged_metka_table_posts();
+  EXECUTE PROCEDURE metka_upd_metka_table_posts_tags_cloud();
 
   CREATE TRIGGER metka_del_on_metka_table_posts_tags
   AFTER DELETE ON metka_table_posts
   REFERENCING OLD TABLE AS old_rows
   FOR EACH STATEMENT
-  EXECUTE PROCEDURE metka_del_tagged_metka_table_posts();
+  EXECUTE PROCEDURE metka_del_metka_table_posts_tags_cloud();
 SQL
 end
 
@@ -374,8 +374,8 @@ class MetkaTablePost < ActiveRecord::Base
   include Metka::Model(column: "tags")
 end
 
-class TaggedMetkaTablePost < ActiveRecord::Base
-  self.table_name = "tagged_metka_table_posts"
+class MetkaTablePostsTagsCloud < ActiveRecord::Base
+  self.table_name = "metka_table_posts_tags_cloud"
 end
 
 if SQLITE
@@ -477,7 +477,7 @@ end
 
 sizes = {
   "metka" => relation_size("metka_posts"),
-  "metka (table)" => relation_size("metka_table_posts", "tagged_metka_table_posts"),
+  "metka (table)" => relation_size("metka_table_posts", "metka_table_posts_tags_cloud"),
   "acts-as-taggable-on" => relation_size("ato_posts", "tags", "taggings"),
   "gutentag" => relation_size("gutentag_posts", "gutentag_tags", "gutentag_taggings")
 }
@@ -555,7 +555,7 @@ puts "=" * 72
 Benchmark.ips do |x|
   x.config(warmup: 2, time: 5)
   x.report("metka") { MetkaPost.tag_cloud }
-  x.report("metka (table)") { TaggedMetkaTablePost.pluck(:tag_name, :taggings_count) }
+  x.report("metka (table)") { MetkaTablePostsTagsCloud.pluck(:tag_name, :taggings_count) }
   unless SQLITE
     x.report("acts-as-taggable-array-on") { ArrayPost.tags_cloud }
     x.report("tag_columns") { TagColumnsPost.tags_cloud }
@@ -702,7 +702,7 @@ end
 
 puts
 puts "Strategy integrity after all suites (0 = aggregate matches a live aggregation):"
-puts "  table mismatching tags: #{cloud_mismatches('metka_table_posts', 'tagged_metka_table_posts')}"
+puts "  table mismatching tags: #{cloud_mismatches('metka_table_posts', 'metka_table_posts_tags_cloud')}"
 
 if SQLITE
   index_mismatches = ActiveRecord::Base.connection.select_value(<<~SQL).to_i
