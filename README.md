@@ -1,6 +1,4 @@
-<p align="center">
-  <img src="assets/metka-logo.svg" alt="Metka" width="336">
-</p>
+# ![Metka](assets/metka-logo.svg)
 
 [![Gem Version](https://badge.fury.io/rb/metka.svg)](https://badge.fury.io/rb/metka)
 [![Build Status](https://github.com/jetrockets/metka/workflows/Tests/badge.svg?branch=master)](https://github.com/jetrockets/metka/actions)
