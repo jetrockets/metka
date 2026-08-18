@@ -5,24 +5,40 @@ require_relative "tags_query"
 
 module Metka
   class QueryBuilder
+    JOINERS = {
+      and: ->(nodes) { Arel::Nodes::And.new(nodes) },
+      or: ->(nodes) { nodes.reduce(:or) }
+    }.freeze
+
+    # Metka::AND and Metka::OR used to be these Arel classes. Callers that
+    # passed them literally still work.
+    LEGACY_OPERATORS = {
+      Arel::Nodes::And => :and,
+      Arel::Nodes::Or => :or
+    }.freeze
+
     def call(model, columns, tags, options)
       strategy = TagsQuery.new(match: options[:any].present? ? :any : :all)
+      nodes = columns.map { |column| strategy.call(model, column, tags) }
+      query = join(nodes, using: options[:join_operator])
 
-      query =
-        join(options[:join_operator]) {
-          columns.map do |column|
-            strategy.call(model, column, tags)
-          end
-        }
-
-      if options[:exclude].present?
-        exclude(query)
-      else
-        query
-      end
+      options[:exclude].present? ? exclude(query) : query
     end
 
     private
+
+    def join(nodes, using:)
+      raise ArgumentError, "No tag columns to search" if nodes.empty?
+
+      JOINERS.fetch(normalize(using)) {
+        raise ArgumentError,
+          "Unknown join_operator #{using.inspect}, expected #{JOINERS.keys.map(&:inspect).join(" or ")}"
+      }.call(nodes)
+    end
+
+    def normalize(operator)
+      LEGACY_OPERATORS.fetch(operator, operator)
+    end
 
     # A NULL tag column makes its comparison NULL, and NOT NULL is NULL, so the
     # row silently drops out of the WHERE entirely. Coalescing to FALSE first
@@ -35,36 +51,6 @@ module Metka
       Arel::Nodes::Not.new(
         Arel::Nodes::NamedFunction.new("COALESCE", [ query, Arel.sql("FALSE") ])
       )
-    end
-
-    def join(operator, &block)
-      nodes = block.call
-
-      if operator == ::Metka::AND
-        join_and(nodes)
-      elsif operator == ::Metka::OR
-        join_or(nodes)
-      end
-    end
-
-    # @param nodes [Array<Arel::Nodes::Node>, Arel::Nodes::Node]
-    # @return [Arel::Nodes::Node]
-    def join_or(nodes)
-      node_base_klass = defined?(::Arel::Nodes::Node) ? ::Arel::Nodes::Node : ::Arel::Node
-
-      case nodes
-      when node_base_klass
-        nodes
-      when Array
-        l, *r = nodes
-        return l if r.empty?
-
-        l.or(join_or(r))
-      end
-    end
-
-    def join_and(queries)
-      Arel::Nodes::And.new(queries)
     end
   end
 end
