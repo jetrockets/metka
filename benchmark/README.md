@@ -27,9 +27,9 @@ vocabulary, identical tag assignment across gems (seeded RNG). Join-table
 schemas come from each gem's own bundled migrations. Raw output of the last
 run is in `results.txt`.
 
-In the cloud/write suites Metka is benchmarked both bare (no tag-cloud
-aggregate maintained) and with the `table` aggregate, where statement-level
-triggers upsert per-tag deltas into a summary table. The table DDL matches
+Metka is benchmarked twice in the cloud/write suites, once per tag-cloud
+aggregate: bare (no aggregate maintained) and `table` (statement-level
+triggers upsert per-tag deltas into a summary table). The table DDL matches
 the output of the `metka:strategies:table` generator.
 
 ## Results (Ruby 4.0.6, Rails 8.1, PostgreSQL 18.3, 10k posts)
@@ -38,24 +38,25 @@ Higher i/s is better; multipliers are relative to the fastest gem per row.
 
 | Operation | metka | taggable-array | tag_columns | acts-as-taggable-on | gutentag |
 | --- | --- | --- | --- | --- | --- |
-| Query: ALL of 2 tags, load records | 6,393 i/s | 6,606 i/s | 970 (6.8x slower) | 2,380 (2.8x slower) | 1,292 (5.1x slower) |
-| Query: ANY of 2 tags, count | 4,629 i/s | 4,625 i/s | 679 (6.8x slower) | 791 (5.9x slower) | 1,026 (4.5x slower) |
-| Tag cloud (counts over 10k posts) | 209 i/s | 197 i/s | 194 i/s | 126 (1.7x slower) | 158 (1.3x slower) |
-| Create post with 5 tags | 1,631 i/s | 1,636 i/s | 1,579 i/s | 196 (8.3x slower) | 183 (9.0x slower) |
-| Replace tags of existing post | 8,122 i/s | 7,480 i/s | 7,158 i/s | 186 (44x slower) | 176 (46x slower) |
-| Bulk seed 10k posts (`insert_all` where possible) | 0.21 s | 0.17 s | 0.16 s | 51.6 s | 49.5 s |
-| Storage, tables + indexes | 2.68 MB | 2.68 MB | 2.68 MB | 17.64 MB | 11.87 MB |
+| Query: ALL of 2 tags, load records | 6,003 i/s | 6,725 i/s | 986 (6.8x slower) | 2,292 (2.9x slower) | 1,299 (5.2x slower) |
+| Query: ANY of 2 tags, count | 4,575 i/s | 4,479 i/s | 678 (6.7x slower) | 788 (5.8x slower) | 1,027 (4.5x slower) |
+| Tag cloud (counts over 10k posts) | 212 i/s | 204 i/s | 198 i/s | 127 (1.7x slower) | 161 (1.3x slower) |
+| Create post with 5 tags | 1,619 i/s | 1,634 i/s | 1,599 i/s | 204 (8.0x slower) | 196 (8.3x slower) |
+| Replace tags of existing post | 8,293 i/s | 7,766 i/s | 7,396 i/s | 190 (44x slower) | 183 (45x slower) |
+| Bulk seed 10k posts (`insert_all` where possible) | 0.21 s | 0.17 s | 0.16 s | 45.6 s | 50.2 s |
+| Storage, tables + indexes | 2.68 MB | 2.68 MB | 2.68 MB | 18.17 MB | 10.97 MB |
 
 Differences between metka and acts-as-taggable-array-on are within
 benchmark noise on every operation.
 
-Tag-cloud strategies, same dataset (bare metka repeated for reference):
+The `table` tag-cloud strategy, same dataset (bare metka repeated for
+reference):
 
 | Operation | metka (bare) | metka (table) |
 | --- | --- | --- |
-| Tag cloud (counts over 10k posts) | 209 i/s | 9,337 i/s |
-| Create post with 5 tags | 1,631 i/s | 1,524 i/s |
-| Replace tags of existing post | 8,122 i/s | 7,696 i/s |
+| Tag cloud (counts over 10k posts) | 212 i/s | 9,025 i/s |
+| Create post with 5 tags | 1,619 i/s | 1,495 i/s |
+| Replace tags of existing post | 8,293 i/s | 8,131 i/s |
 | Bulk seed 10k posts | 0.21 s | 0.17 s |
 | Storage, tables + indexes | 2.68 MB | 2.75 MB |
 
@@ -73,14 +74,14 @@ script verifies this at the end of every run.
   `IN (SELECT ... GROUP BY ... HAVING COUNT(*))` subquery. Writes are the
   starkest difference: replacing a tag list is a one-column `UPDATE` for the
   array gems, while the join-table gems load current taggings, diff them, and
-  insert/delete rows plus counter-cache updates — hence 47–57x.
+  insert/delete rows plus counter-cache updates — hence 44–45x.
 - **tag_columns defeats its own index.** Its scopes wrap the column in
   `CAST(tags AS text[])`, and the planner will not use the GIN index on the
   column under a cast: `EXPLAIN` shows metka using a Bitmap Index Scan and
   tag_columns a Seq Scan for the same logical query. Writes (no cast
   involved) match the other array gems.
 - **What the table strategy costs.** It serves tag-cloud reads from a small
-  pre-aggregated relation (~45x faster than aggregating live) while keeping
+  pre-aggregated relation (~43x faster than aggregating live) while keeping
   every write within benchmark noise of bare metka: its statement-level
   triggers read the statement's transition tables and upsert only the touched
   tags' counters, so a write pays for the tags it changed rather than for a
