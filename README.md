@@ -1,6 +1,6 @@
 [![Gem Version](https://badge.fury.io/rb/metka.svg)](https://badge.fury.io/rb/metka)
-[![Build Status](https://github.com/jetrockets/metka/workflows/Tests/badge.svg?branch=master)](https://github.com/jetrockets/metka/actions)
-[![Open Source Helpers](https://www.codetriage.com/jetrockets/metka/badges/users.svg)](https://www.codetriage.com/jetrockets/metka)
+[![Build Status](https://github.com/metka-ruby/metka/workflows/Tests/badge.svg?branch=master)](https://github.com/metka-ruby/metka/actions)
+[![Open Source Helpers](https://www.codetriage.com/metka-ruby/metka/badges/users.svg)](https://www.codetriage.com/metka-ruby/metka)
 
 # Metka
 
@@ -543,7 +543,7 @@ To install this gem onto your local machine, run `bundle exec rake install`. To 
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at [https://github.com/jetrockets/metka](https://github.com/jetrockets/metka). This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
+Bug reports and pull requests are welcome on GitHub at [https://github.com/metka-ruby/metka](https://github.com/metka-ruby/metka). This project is intended to be a safe, welcoming space for collaboration, and contributors are expected to adhere to the [Contributor Covenant](http://contributor-covenant.org) code of conduct.
 
 ## Credits
 
@@ -555,4 +555,4 @@ The gem is available as open source under the terms of the [MIT License](https:/
 
 ## Code of Conduct
 
-Everyone interacting in the Metka project’s codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/jetrockets/metka/blob/master/CODE_OF_CONDUCT.md).
+Everyone interacting in the Metka project’s codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/metka-ruby/metka/blob/master/CODE_OF_CONDUCT.md).
