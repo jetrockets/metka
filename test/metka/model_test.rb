@@ -5,11 +5,24 @@ require "test_helper"
 class MetkaModelTest < ActiveSupport::TestCase
   TAG_LIST = "ruby, elixir, crystal"
 
-  # .with_all_tags, default parser
+  # Generating this surface is the macro's whole job, so pin it once here
+  # rather than repeating an existence check beside every test that calls it.
+  test "declares a scope quartet, list accessors and a cloud per column" do
+    %w[tags categories].each do |column|
+      assert_respond_to Post, :"with_all_#{column}"
+      assert_respond_to Post, :"with_any_#{column}"
+      assert_respond_to Post, :"without_all_#{column}"
+      assert_respond_to Post, :"without_any_#{column}"
+      assert_respond_to Post, :"#{column.singularize}_cloud"
+      assert_respond_to Post.new, :"#{column.singularize}_list"
+      assert_respond_to Post.new, :"#{column.singularize}_list="
+    end
 
-  test "responds to .with_all_tags" do
-    assert_respond_to Post, :with_all_tags
+    assert_respond_to Post, :tagged_with
+    assert_respond_to Post, :metka_cloud
   end
+
+  # .with_all_tags, default parser
 
   test ".with_all_tags is able to find by tag" do
     assert_predicate Post.with_all_tags(TAG_LIST), :present?
@@ -28,10 +41,6 @@ class MetkaModelTest < ActiveSupport::TestCase
 
   # .with_any_tags, default parser
 
-  test "responds to .with_any_tags" do
-    assert_respond_to Post, :with_any_tags
-  end
-
   test ".with_any_tags is able to find by tag" do
     assert_equal 2, Post.with_any_tags(TAG_LIST + ", go").count
     assert_predicate Post.with_any_tags("go, elixir"), :present?
@@ -43,10 +52,6 @@ class MetkaModelTest < ActiveSupport::TestCase
   end
 
   # .without_all_tags
-
-  test "responds to .without_all_tags" do
-    assert_respond_to Post, :without_all_tags
-  end
 
   test ".without_all_tags returns every post if tags empty" do
     [ "", nil, [] ].each do |tags|
@@ -66,10 +71,6 @@ class MetkaModelTest < ActiveSupport::TestCase
   end
 
   # .without_any_tags
-
-  test "responds to .without_any_tags" do
-    assert_respond_to Post, :without_any_tags
-  end
 
   test ".without_any_tags returns the posts carrying none of the given tags" do
     assert_equal 1, Post.without_any_tags([ "elixir", "php" ]).count
@@ -122,10 +123,6 @@ class MetkaModelTest < ActiveSupport::TestCase
 
   TAGS = "developer | senior"
 
-  test "responds to .with_all_tags with a custom parser" do
-    assert_respond_to User, :with_all_tags
-  end
-
   test ".with_all_tags is able to find by tags with a custom parser" do
     assert_predicate User.with_all_tags(TAGS), :present?
     assert_predicate User.with_all_tags(TAGS.split(" | ").first), :present?
@@ -138,10 +135,6 @@ class MetkaModelTest < ActiveSupport::TestCase
 
   test ".with_all_tags returns an empty scope for unused categories with a custom parser" do
     assert_empty User.with_all_tags([ TAGS.split(" | ").first, "junior" ])
-  end
-
-  test "responds to .with_any_tags with a custom parser" do
-    assert_respond_to User, :with_any_tags
   end
 
   test ".with_any_tags is able to find by category with a custom parser" do
