@@ -84,42 +84,51 @@ script verifies this at the end of every run.
 `DB=sqlite` benchmarks the gems that run on SQLite: metka stores tags in a
 JSON column and queries through `json_each`, acts-as-taggable-on and gutentag
 use their join tables unchanged. acts-as-taggable-array-on and tag_columns
-are PostgreSQL-array-only and are skipped. Same conventions as above — the
-metka column has the table aggregate in place, query rows are measured on the
-bare table:
+are PostgreSQL-array-only and are skipped. Metka appears three ways: bare
+(query rows are measured there), with the table aggregate maintaining the
+tag cloud, and with the `metka:strategies:index` side table answering
+queries via index seeks:
 
-| Operation | metka | acts-as-taggable-on | gutentag |
+| Operation | metka | metka (index) | acts-as-taggable-on | gutentag |
+| --- | --- | --- | --- | --- |
+| Query: ALL of 2 tags, load records | 398 (18x slower) | 7,199 i/s | 3,189 (2.3x slower) | 1,965 (3.7x slower) |
+| Query: ANY of 2 tags, count | 379 (11x slower) | 4,113 i/s | 410 (10x slower) | 1,900 (2.2x slower) |
+| Tag cloud (counts over 10k posts) | 12,697 i/s (table) | — | 111 (115x slower) | 88 (145x slower) |
+| Create post with 5 tags | 6,895 i/s (table) | 5,349 (1.3x slower) | 268 (26x slower) | 284 (24x slower) |
+| Replace tags of existing post | 12,604 i/s (table) | 12,696 i/s | 416 (30x slower) | 809 (16x slower) |
+| Bulk seed 10k posts (`insert_all` where possible) | 0.08 s | 0.10 s | 31.4 s | 35.3 s |
+| Storage, tables + indexes | 0.63 MB | 1.39 MB | 12.53 MB | 7.20 MB |
+
+What the strategies cost relative to bare metka on the same dataset:
+
+| Operation | metka (bare) | metka (table) | metka (index) |
 | --- | --- | --- | --- |
-| Query: ALL of 2 tags, load records | 397 i/s (8.3x slower) | 3,294 i/s | 1,965 (1.7x slower) |
-| Query: ANY of 2 tags, count | 378 (5.1x slower) | 426 (4.6x slower) | 1,944 i/s |
-| Tag cloud (counts over 10k posts) | 12,685 i/s | 111 (114x slower) | 86 (148x slower) |
-| Create post with 5 tags | 6,680 i/s | 263 (25x slower) | 281 (24x slower) |
-| Replace tags of existing post | 12,334 i/s | 434 (28x slower) | 760 (16x slower) |
-| Bulk seed 10k posts (`insert_all` where possible) | 0.08 s | 31.1 s | 35.2 s |
-| Storage, tables + indexes | 0.63 MB | 12.53 MB | 7.20 MB |
+| Tag cloud (counts over 10k posts) | 111 i/s | 12,697 i/s | — |
+| Query: ALL of 2 tags, load records | 398 i/s | 398 i/s | 7,199 i/s |
+| Create post with 5 tags | 7,783 i/s | 6,895 i/s | 5,349 i/s |
+| Replace tags of existing post | 12,670 i/s | 12,604 i/s | 12,696 i/s |
+| Bulk seed 10k posts | 0.10 s | 0.08 s | 0.10 s |
+| Storage, tables + indexes | 0.62 MB | 0.63 MB | 1.39 MB |
 
-Bare metka on the same dataset (`table` strategy repeated for reference):
-
-| Operation | metka (table) | metka (bare) |
-| --- | --- | --- |
-| Tag cloud (counts over 10k posts) | 12,685 i/s | 111 (114x slower) |
-| Create post with 5 tags | 6,680 i/s | 7,532 i/s |
-| Replace tags of existing post | 12,334 i/s | 12,341 i/s |
-| Bulk seed 10k posts | 0.08 s | 0.10 s |
-| Storage, tables + indexes | 0.63 MB | 0.62 MB |
-
-The integrity check holds on SQLite too: after all suites the per-row
-triggers' aggregate matched a live `json_each .. GROUP BY` aggregation
+Both integrity checks hold on SQLite: after all suites the table strategy's
+counters matched a live `json_each .. GROUP BY` aggregation exactly, and the
+index strategy's pairs matched a live `DISTINCT (tag, id)` projection
 exactly.
 
-Reading the table: the query rows flip in favor of the join-table gems.
-SQLite has no GIN equivalent, so metka's `EXISTS json_each` predicates scan
-the table (~2.5 ms per query at 10k rows, growing linearly), while the
-join-table gems' ordinary B-tree indexes work on SQLite exactly as they do
-on PostgreSQL. Everything else favors metka by a wide margin: single-column
-writes beat the load-diff-insert tagging machinery ~16–28x, `insert_all`
-seeding works at all (the join-table gems must create row by row), and a JSON
-text column is ~11–20x smaller on disk than tags + taggings + their indexes.
+Reading the tables: by default the query rows flip in favor of the
+join-table gems. SQLite has no GIN equivalent, so metka's `EXISTS json_each`
+predicates scan the table (~2.5 ms per query at 10k rows, growing linearly),
+while the join-table gems' ordinary B-tree indexes work on SQLite exactly as
+they do on PostgreSQL. The index strategy takes the reads back: its
+`WITHOUT ROWID` (tag_name, record_id) table turns "all" into an INTERSECT
+of index seeks and "any" into one IN probe — 18x over the scan, 2.3x ahead
+of acts-as-taggable-on — and its per-row triggers cost ~1.5x on create
+(measured against bare metka; still ~20x ahead of the join-table gems),
+nothing measurable on replace, and ~0.8 MB per 10k posts. Everything else
+favors metka in every setup: single-column writes beat the
+load-diff-insert tagging machinery ~16–30x, `insert_all` seeding works at
+all (the join-table gems must create row by row), and even with the index
+table metka is ~5–9x smaller on disk than tags + taggings + their indexes.
 Writes are also where SQLite punishes the join-table gems hardest: every
 tagging row insert/delete is a separate statement against a single-writer
 database.

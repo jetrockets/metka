@@ -1,0 +1,89 @@
+# frozen_string_literal: true
+
+class <%= @migration_class_name %> < ActiveRecord::Migration<%= ActiveRecord::VERSION::MAJOR < 5 ? '' : '[5.0]' %>
+  # One (tag_name, record_id) side table per tagged column, so SQLite tag
+  # queries become index seeks instead of json_each table scans. The WITHOUT
+  # ROWID primary key (tag_name, record_id) is itself the covering index —
+  # no separate index needed — and doubles as the dedup guard: a tag
+  # duplicated inside one row's array stores a single pair, which is all
+  # membership queries need.
+  #
+  # Per-row triggers keep the pairs in step with every INSERT, UPDATE and
+  # DELETE, multi-row statements included. Deletes seek through the primary
+  # key (tag_name from OLD's array, then record_id), so no extra index on
+  # record_id is required. Writes that bypass the triggers (restoring from a
+  # dump) require reseeding the table by hand.
+  #
+  # Declare the tables on the model to route queries through them:
+  #
+  #   include Metka::Model(
+  #     columns: %w[<%= source_columns.join(' ') %>],
+  #     index_tables: {
+<% source_columns.each do |column| -%>
+  #       "<%= column %>" => "<%= index_table_for(column) %>",
+<% end -%>
+  #     }
+  #   )
+  def up
+<% source_columns.each do |column| -%>
+    execute <<-SQL
+    CREATE TABLE <%= index_table_for(column) %> (
+      tag_name varchar NOT NULL,
+      record_id bigint NOT NULL,
+      PRIMARY KEY (tag_name, record_id)
+    ) WITHOUT ROWID;
+    SQL
+
+    execute <<-SQL
+    INSERT OR IGNORE INTO <%= index_table_for(column) %> (tag_name, record_id)
+      SELECT value, <%= source_table_name %>.id
+      FROM <%= source_table_name %>, json_each(<%= source_table_name %>.<%= column %>);
+    SQL
+
+    execute <<-SQL
+    CREATE TRIGGER metka_idx_ins_on_<%= source_table_name %>_<%= column %>
+    AFTER INSERT ON <%= source_table_name %>
+    FOR EACH ROW
+    BEGIN
+      INSERT OR IGNORE INTO <%= index_table_for(column) %> (tag_name, record_id)
+      SELECT value, NEW.id FROM json_each(NEW.<%= column %>);
+    END;
+    SQL
+
+    execute <<-SQL
+    CREATE TRIGGER metka_idx_upd_on_<%= source_table_name %>_<%= column %>
+    AFTER UPDATE OF <%= column %> ON <%= source_table_name %>
+    FOR EACH ROW
+    BEGIN
+      DELETE FROM <%= index_table_for(column) %>
+      WHERE tag_name IN (SELECT value FROM json_each(OLD.<%= column %>))
+        AND record_id = OLD.id;
+
+      INSERT OR IGNORE INTO <%= index_table_for(column) %> (tag_name, record_id)
+      SELECT value, NEW.id FROM json_each(NEW.<%= column %>);
+    END;
+    SQL
+
+    execute <<-SQL
+    CREATE TRIGGER metka_idx_del_on_<%= source_table_name %>_<%= column %>
+    AFTER DELETE ON <%= source_table_name %>
+    FOR EACH ROW
+    BEGIN
+      DELETE FROM <%= index_table_for(column) %>
+      WHERE tag_name IN (SELECT value FROM json_each(OLD.<%= column %>))
+        AND record_id = OLD.id;
+    END;
+    SQL
+
+<% end -%>
+  end
+
+  def down
+<% source_columns.each do |column| -%>
+    execute "DROP TRIGGER IF EXISTS metka_idx_ins_on_<%= source_table_name %>_<%= column %>;"
+    execute "DROP TRIGGER IF EXISTS metka_idx_upd_on_<%= source_table_name %>_<%= column %>;"
+    execute "DROP TRIGGER IF EXISTS metka_idx_del_on_<%= source_table_name %>_<%= column %>;"
+    execute "DROP TABLE IF EXISTS <%= index_table_for(column) %>;"
+<% end -%>
+  end
+end

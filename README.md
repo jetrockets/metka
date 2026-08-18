@@ -48,15 +48,52 @@ t.json :tags, default: []
 On PostgreSQL, queries use the array containment operators (`@>`, `&&`) and
 are served by GIN indexes. On SQLite, tags are stored as a JSON array and
 queries compile to `EXISTS` probes over the `json_each` table-valued function.
-SQLite has no index type that can serve membership-in-array predicates, so tag
-queries there are table scans — fast at embedded-database scale because SQLite
-runs in-process, but without the index-backed scaling PostgreSQL provides. If
-your tag queries need an index, use PostgreSQL.
+SQLite has no index type that can serve membership-in-array predicates, so by
+default tag queries there are table scans — fast at embedded-database scale
+because SQLite runs in-process, but growing linearly with the table. When
+that starts to matter, the opt-in [index strategy](#index-strategy-sqlite)
+turns tag queries into index seeks.
 
 The [table strategy](#table-strategy-with-triggers-recommended) works on both
 databases: the generator inspects the adapter and emits transition-table
 triggers for PostgreSQL or per-row `json_each` triggers for SQLite. SQLite
 3.35 or newer is required (the `sqlite3` gem bundles a current version).
+
+### Index Strategy (SQLite)
+
+The index strategy maintains one `(tag_name, record_id)` side table per
+tagged column — a `WITHOUT ROWID` table whose primary key doubles as a
+covering index — kept in step by per-row triggers, exactly like the table
+strategy maintains its counters. With it declared, `tagged_with` and the
+column scopes answer from index seeks (`INTERSECT` of per-tag seeks for
+"all", one `IN` probe for "any") instead of scanning `json_each`, with
+identical semantics: case-sensitive, any string is a valid tag, and rows
+with a `NULL` tag column behave exactly as before.
+
+```bash
+rails g metka:strategies:index --source-table-name=songs --source-columns=tags genres
+rails db:migrate
+```
+
+Then route queries through the tables by declaring them on the model:
+
+```ruby
+class Song < ActiveRecord::Base
+  include Metka::Model(
+    columns: %w[tags genres],
+    index_tables: {
+      "tags" => "songs_tags_index",
+      "genres" => "songs_genres_index"
+    }
+  )
+end
+```
+
+On PostgreSQL the generator produces nothing (GIN indexes already serve tag
+queries) and the `index_tables` declaration is inert, so the same model code
+runs on both adapters. The same ownership caveat as the table strategy
+applies: writes that bypass the triggers (restoring from a dump) require
+reseeding the index tables the way the migration seeds them.
 
 ## Tag objects
 
@@ -466,26 +503,29 @@ keeping it fresh, which stays within measurement noise:
 The suite also runs on SQLite (`DB=sqlite`), against the gems that support it
 — acts-as-taggable-on and gutentag; acts-as-taggable-array-on and tag_columns
 are PostgreSQL-only and sit this one out. Same dataset and conventions as
-above (Ruby 4.0, Rails 8.1, SQLite 3.53, metka with the table aggregate in
-place):
+above (Ruby 4.0, Rails 8.1, SQLite 3.53). The metka column has the table
+aggregate in place; metka (index) adds the opt-in
+[index strategy](#index-strategy-sqlite), which changes only how queries are
+answered:
 
-| Operation | metka | acts-as-taggable-on | gutentag |
-| --- | --- | --- | --- |
-| Query: ALL of 2 tags, load records | 397 | 3,294 | 1,965 |
-| Query: ANY of 2 tags, count | 378 | 426 | 1,944 |
-| Tag cloud over all posts | 12,685 | 111 | 86 |
-| Create post with 5 tags | 6,680 | 263 | 281 |
-| Replace tags of existing post | 12,334 | 434 | 760 |
-| Bulk seed 10k posts | 0.08 s | 31.1 s | 35.2 s |
-| Storage, tables + indexes | 0.63 MB | 12.53 MB | 7.20 MB |
+| Operation | metka | metka (index) | acts-as-taggable-on | gutentag |
+| --- | --- | --- | --- | --- |
+| Query: ALL of 2 tags, load records | 398 | 7,199 | 3,189 | 1,965 |
+| Query: ANY of 2 tags, count | 379 | 4,113 | 410 | 1,900 |
+| Tag cloud over all posts | 12,697 | — | 111 | 88 |
+| Create post with 5 tags | 6,895 | 5,349 | 268 | 284 |
+| Replace tags of existing post | 12,604 | 12,696 | 416 | 809 |
+| Bulk seed 10k posts | 0.08 s | 0.10 s | 31.4 s | 35.3 s |
+| Storage, tables + indexes | 0.63 MB | 1.39 MB | 12.53 MB | 7.20 MB |
 
-The trade-off flips on reads: SQLite has no GIN equivalent, so metka's tag
-queries are `json_each` table scans while the join-table gems keep their
-ordinary B-tree indexes — that's the query rows going to them. Everything
-else — writes (~27x), bulk seeding (~400x), storage (~11–20x) and the
-maintained tag cloud (>100x) — goes to metka by a wide margin. At 10k rows a
-metka tag query still answers in ~2.5 ms; whether the read gap matters
-depends on how big the table gets and how read-heavy tagging is.
+By default the read rows flip against metka: SQLite has no GIN equivalent,
+so tag queries are `json_each` table scans (~2.5 ms at 10k rows, growing
+linearly) while the join-table gems keep their ordinary B-tree indexes. The
+index strategy takes the reads back — 18x over the scan and 2.3x faster
+than acts-as-taggable-on — for a modest price: creates run ~1.5x slower
+than bare metka (still ~20x ahead of the join-table gems), tag replacement
+stays within noise, and the side table adds ~0.8 MB per 10k posts. Writes,
+seeding and storage stay with metka by a wide margin in every setup.
 
 Keep in mind that these results alone can't prove one solution better than
 the others — each gem has unique features. The join-table gems maintain a

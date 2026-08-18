@@ -16,11 +16,17 @@ module Metka
     def initialize(columns:, **options)
       @columns = columns.dup.freeze
       @options = options.dup.freeze
+
+      unknown = index_tables.keys - @columns
+      if unknown.any?
+        raise ArgumentError, "index_tables declared for unknown columns #{unknown.inspect}, expected #{@columns.inspect}"
+      end
     end
 
     def included(base)
       define_column_scopes(base)
       define_tagged_with_scope(base)
+      define_index_tables(base)
       define_tag_clouds(base)
       define_tag_list_accessors(base)
     end
@@ -69,6 +75,16 @@ module Metka
           join_operator: options[:join_operator] || ::Metka::OR
         }))
       }
+    end
+
+    # The index strategy (`rails g metka:strategies:index`) maintains a
+    # (tag_name, record_id) side table per tagged column. Declaring it here
+    # via `index_tables: { "tags" => "posts_tags_index" }` lets the SQLite
+    # query path answer from that table instead of scanning json_each.
+    def define_index_tables(base)
+      tables = index_tables
+
+      base.define_singleton_method(:metka_index_table) { |column| tables[column.to_s] }
     end
 
     def define_tag_clouds(base)
@@ -125,6 +141,10 @@ module Metka
           parser.call(send(column))
         end
       end
+    end
+
+    def index_tables
+      (@options[:index_tables] || {}).transform_keys(&:to_s).transform_values(&:to_s).freeze
     end
 
     # Metka.config.parser is looked up on every call so that reconfiguring it
