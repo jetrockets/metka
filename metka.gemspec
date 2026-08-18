@@ -26,7 +26,6 @@ Gem::Specification.new do |spec|
   spec.require_paths = [ 'lib' ]
 
   # `setting :name, default: value` is only supported since 0.13
-  spec.add_dependency 'dry-configurable', '>= 0.13'
   spec.add_dependency 'rails', '>= 7.1'
 
   spec.add_development_dependency 'pry', '>= 0.12.2'
