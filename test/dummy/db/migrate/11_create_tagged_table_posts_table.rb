@@ -2,6 +2,94 @@
 
 class CreateTaggedTablePostsTable < ActiveRecord::Migration[5.0]
   def up
+    connection.adapter_name.match?(/sqlite/i) ? up_sqlite : up_postgresql
+  end
+
+  def down
+    connection.adapter_name.match?(/sqlite/i) ? down_sqlite : down_postgresql
+  end
+
+  private
+
+  # SQLite has no statement-level triggers or transition tables, so the deltas
+  # are applied by FOR EACH ROW triggers reading NEW/OLD through json_each.
+  # Multi-row statements (insert_all, update_all, delete_all) still keep exact
+  # counts because the trigger fires once per affected row. SQLite allows one
+  # writer per database and DDL is transactional, so no LOCK TABLE is needed
+  # between the seed and CREATE TRIGGER — nothing can write in between.
+  def up_sqlite
+    execute <<-SQL
+    CREATE TABLE tagged_table_posts (
+      tag_name varchar PRIMARY KEY,
+      taggings_count bigint NOT NULL
+    );
+    SQL
+
+    execute <<-SQL
+    INSERT INTO tagged_table_posts (tag_name, taggings_count)
+      SELECT value, COUNT(*)
+      FROM table_posts, json_each(table_posts.tags)
+      GROUP BY value;
+    SQL
+
+    # The WHERE true disambiguates the upsert's ON CONFLICT from a join clause
+    # in the INSERT ... SELECT form — a documented SQLite parser requirement.
+    # A tag duplicated inside one row's array upserts once per occurrence, so
+    # duplicates count exactly as PostgreSQL's UNNEST-based triggers count them.
+    execute <<-SQL
+    CREATE TRIGGER metka_ins_on_table_posts_tags
+    AFTER INSERT ON table_posts
+    FOR EACH ROW
+    BEGIN
+      INSERT INTO tagged_table_posts (tag_name, taggings_count)
+      SELECT value, 1 FROM json_each(NEW.tags) WHERE true
+      ON CONFLICT (tag_name)
+      DO UPDATE SET taggings_count = taggings_count + 1;
+    END;
+    SQL
+
+    execute <<-SQL
+    CREATE TRIGGER metka_upd_on_table_posts_tags
+    AFTER UPDATE OF tags ON table_posts
+    FOR EACH ROW
+    BEGIN
+      INSERT INTO tagged_table_posts (tag_name, taggings_count)
+      SELECT value, 1 FROM json_each(NEW.tags) WHERE true
+      ON CONFLICT (tag_name)
+      DO UPDATE SET taggings_count = taggings_count + 1;
+
+      UPDATE tagged_table_posts
+      SET taggings_count = taggings_count -
+        (SELECT COUNT(*) FROM json_each(OLD.tags) WHERE value = tag_name)
+      WHERE tag_name IN (SELECT value FROM json_each(OLD.tags));
+
+      DELETE FROM tagged_table_posts WHERE taggings_count <= 0;
+    END;
+    SQL
+
+    execute <<-SQL
+    CREATE TRIGGER metka_del_on_table_posts_tags
+    AFTER DELETE ON table_posts
+    FOR EACH ROW
+    BEGIN
+      UPDATE tagged_table_posts
+      SET taggings_count = taggings_count -
+        (SELECT COUNT(*) FROM json_each(OLD.tags) WHERE value = tag_name)
+      WHERE tag_name IN (SELECT value FROM json_each(OLD.tags));
+
+      DELETE FROM tagged_table_posts WHERE taggings_count <= 0;
+    END;
+    SQL
+  end
+
+  def down_sqlite
+    execute "DROP TRIGGER IF EXISTS metka_ins_on_table_posts_tags;"
+    execute "DROP TRIGGER IF EXISTS metka_upd_on_table_posts_tags;"
+    execute "DROP TRIGGER IF EXISTS metka_del_on_table_posts_tags;"
+    execute "DROP TABLE IF EXISTS tagged_table_posts;"
+  end
+
+  def up_postgresql
     execute <<-SQL
     -- A real table maintained by per-tag deltas: statement-level triggers read
     -- the transition tables and upsert only the tags the statement touched, so
@@ -114,7 +202,7 @@ class CreateTaggedTablePostsTable < ActiveRecord::Migration[5.0]
     SQL
   end
 
-  def down
+  def down_postgresql
     execute <<-SQL
       DROP TRIGGER IF EXISTS metka_ins_on_table_posts_tags ON table_posts;
       DROP TRIGGER IF EXISTS metka_upd_on_table_posts_tags ON table_posts;

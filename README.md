@@ -4,7 +4,7 @@
 
 # Metka
 
-A Rails tagging gem built on PostgreSQL array columns. Tags live in an indexed array column right on your table — no join tables, no extra models, no N+1 queries.
+A Rails tagging gem built on PostgreSQL array columns. Tags live in an indexed array column right on your table — no join tables, no extra models, no N+1 queries. SQLite is supported too: there the tags live in a JSON column and every query compiles to `json_each` probes (see [Database support](#database-support)).
 
 :exclamation: Requirements:
 
@@ -30,6 +30,33 @@ Or install it yourself as:
 ```bash
 gem install metka
 ```
+
+## Database support
+
+Metka works on PostgreSQL and SQLite, with the same API and the same matching
+semantics on both. The adapter is detected at query time, so nothing needs to
+be configured — only the migration differs:
+
+```ruby
+# PostgreSQL: an array column, indexed with GIN
+t.string :tags, array: true, default: [], index: { using: :gin }
+
+# SQLite: a JSON column holding an array of strings
+t.json :tags, default: []
+```
+
+On PostgreSQL, queries use the array containment operators (`@>`, `&&`) and
+are served by GIN indexes. On SQLite, tags are stored as a JSON array and
+queries compile to `EXISTS` probes over the `json_each` table-valued function.
+SQLite has no index type that can serve membership-in-array predicates, so tag
+queries there are table scans — fast at embedded-database scale because SQLite
+runs in-process, but without the index-backed scaling PostgreSQL provides. If
+your tag queries need an index, use PostgreSQL.
+
+The [table strategy](#table-strategy-with-triggers-recommended) works on both
+databases: the generator inspects the adapter and emits transition-table
+triggers for PostgreSQL or per-row `json_each` triggers for SQLite. SQLite
+3.35 or newer is required (the `sqlite3` gem bundles a current version).
 
 ## Tag objects
 
@@ -88,7 +115,7 @@ responsibility.
 
 ## Find tagged objects
 
-Every scope below builds on PostgreSQL's array operators (`@>` for "all", `&&` for "any"), so queries can use the GIN indexes created in the migration above. Passing an empty string or `nil` returns the unfiltered relation.
+Every scope below builds on PostgreSQL's array operators (`@>` for "all", `&&` for "any"), so queries can use the GIN indexes created in the migration above. On SQLite the same scopes compile to `EXISTS` probes over `json_each` with identical semantics. Passing an empty string or `nil` returns the unfiltered relation.
 
 ### .with_all_#{column_name}
 
@@ -333,6 +360,19 @@ INSERT INTO tagged_songs (tag_name, taggings_count)
 COMMIT;
 ```
 
+On SQLite the same reseed reads the arrays through `json_each` (no lock is
+needed — SQLite allows a single writer per database):
+
+```sql
+BEGIN;
+DELETE FROM tagged_songs;
+INSERT INTO tagged_songs (tag_name, taggings_count)
+  SELECT value, COUNT(*)
+  FROM songs, json_each(songs.tags)
+  GROUP BY value;
+COMMIT;
+```
+
 ### ActiveRecord Strategy (Zero Setup)
 
 Tagging statistics are available via class methods on any model that includes `Metka::Model`. You can build a cloud for a single tagged column or for several at once — in the latter case each tag's count is summed across the given columns. The ActiveRecord strategy is the easiest to use since it requires no additional code, but it is the slowest one on SELECT.
@@ -431,7 +471,7 @@ the suite yourself.
 
 ## Development
 
-After checking out the repo, run `bin/setup` to install dependencies and prepare the test database (a running PostgreSQL server is required). Then run `rake test` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+After checking out the repo, run `bin/setup` to install dependencies and prepare the test databases (a running PostgreSQL server is required; the SQLite database is a file created automatically). Then run `rake test` to run the tests against PostgreSQL, or `DB=sqlite rake test` to run them against SQLite. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
 
 To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
 

@@ -32,10 +32,21 @@ module Metka
           desc: "Custom name for the resulting table"
 
         def generate_migration
-          migration_template "migration.rb.erb", "db/migrate/#{migration_name}.rb"
+          migration_template migration_template_file, "db/migrate/#{migration_name}.rb"
         end
 
         no_tasks do
+          # The migration is written for the database the app is connected to
+          # at generation time: transition-table triggers for PostgreSQL,
+          # per-row json_each triggers for SQLite.
+          def migration_template_file
+            if ::ActiveRecord::Base.connection.adapter_name.match?(/sqlite/i)
+              "migration.sqlite.rb.erb"
+            else
+              "migration.rb.erb"
+            end
+          end
+
           def source_table_name
             options[:source_table_name]
           end

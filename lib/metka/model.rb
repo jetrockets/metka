@@ -85,10 +85,24 @@ module Metka
           raise ArgumentError, "Unknown tag columns #{unknown.inspect}, expected #{taggable.inspect}"
         end
 
-        prepared_unnest = cloud_columns.map { |column|
+        quoted = cloud_columns.map { |column|
           connection.quote_table_name("#{table_name}.#{column}")
-        }.join(" || ")
-        subquery = all.select("UNNEST(#{prepared_unnest}) AS tag_name")
+        }
+
+        subquery =
+          if connection.adapter_name.match?(/sqlite/i)
+            # SQLite has no UNNEST; json_each unpacks each JSON array as a
+            # lateral cross join. Arrays cannot be concatenated the way
+            # PostgreSQL concatenates them, so multiple columns become one
+            # SELECT per column glued with UNION ALL — a NULL column joins to
+            # zero rows either way, matching UNNEST of a NULL array.
+            parts = quoted.map { |column|
+              all.select("json_each.value AS tag_name").joins("CROSS JOIN json_each(#{column})").to_sql
+            }
+            Arel.sql("(#{parts.join(" UNION ALL ")}) subquery")
+          else
+            all.select("UNNEST(#{quoted.join(" || ")}) AS tag_name")
+          end
 
         unscoped.from(subquery).group(:tag_name).pluck(:tag_name, Arel.sql("COUNT(*) AS taggings_count"))
       end
