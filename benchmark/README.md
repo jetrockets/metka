@@ -4,7 +4,7 @@ Compares Metka against four other ActiveRecord tagging gems:
 
 | Gem | Version | Storage model | Runs on |
 | --- | --- | --- | --- |
-| [metka](https://github.com/jetrockets/metka) | this checkout | PostgreSQL array column + GIN index; JSON column on SQLite | PostgreSQL, SQLite |
+| [metka](https://github.com/metka-ruby/metka) | this checkout | PostgreSQL array column + GIN index; JSON column on SQLite | PostgreSQL, SQLite |
 | [acts-as-taggable-array-on](https://github.com/tmiyamon/acts-as-taggable-array-on) | 0.7.0 | PostgreSQL array column + GIN index | PostgreSQL |
 | [tag_columns](https://github.com/hopsoft/tag_columns) | 0.1.10 | PostgreSQL array column + GIN index | PostgreSQL |
 | [acts-as-taggable-on](https://github.com/mbleigh/acts-as-taggable-on) | 13.0.0 | normalized `tags` + polymorphic `taggings` join tables | PostgreSQL, SQLite |

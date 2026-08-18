@@ -12,8 +12,15 @@ Gem::Specification.new do |spec|
 
   spec.summary = 'Rails tagging system based on PostgreSQL arrays'
   spec.description = 'Rails tagging system based on PostgreSQL arrays'
-  spec.homepage = 'https://github.com/jetrockets/metka'
+  spec.homepage = 'https://github.com/metka-ruby/metka'
   spec.license = 'MIT'
+
+  spec.metadata = {
+    'homepage_uri' => spec.homepage,
+    'source_code_uri' => spec.homepage,
+    'bug_tracker_uri' => "#{spec.homepage}/issues",
+    'rubygems_mfa_required' => 'true'
+  }
 
   # Specify which files should be added to the gem when it is released.
   # The `git ls-files -z` loads the files in the RubyGem that have been added into git.
