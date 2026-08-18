@@ -5,7 +5,7 @@ require "rails/generators/test_case"
 require "generators/metka/strategies/table/table_generator"
 
 class TableGeneratorTest < Rails::Generators::TestCase
-  MIGRATION = "db/migrate/create_tagged_notes_table.rb"
+  MIGRATION = "db/migrate/create_notes_tags_cloud_table.rb"
   SQLITE = ActiveRecord::Base.connection.adapter_name.match?(/sqlite/i)
 
   tests Metka::Generators::Strategies::TableGenerator
@@ -21,11 +21,11 @@ class TableGeneratorTest < Rails::Generators::TestCase
   end
 
   test "up migration creates table" do
-    assert_migration MIGRATION, /CREATE TABLE tagged_notes/i
+    assert_migration MIGRATION, /CREATE TABLE notes_tags_cloud/i
   end
 
   test "up migration seeds the table from existing rows" do
-    assert_migration MIGRATION, /INSERT INTO tagged_notes \(tag_name, taggings_count\)\s+SELECT/i
+    assert_migration MIGRATION, /INSERT INTO notes_tags_cloud \(tag_name, taggings_count\)\s+SELECT/i
   end
 
   test "up migration creates a trigger per operation" do
@@ -41,7 +41,7 @@ class TableGeneratorTest < Rails::Generators::TestCase
   end
 
   test "down migration drops table" do
-    assert_migration MIGRATION, /DROP TABLE IF EXISTS tagged_notes/i
+    assert_migration MIGRATION, /DROP TABLE IF EXISTS notes_tags_cloud/i
   end
 
   if SQLITE
@@ -70,16 +70,16 @@ class TableGeneratorTest < Rails::Generators::TestCase
     test "up migration locks the source table before seeding" do
       assert_migration MIGRATION do |migration|
         lock = migration.index(/LOCK TABLE notes IN SHARE ROW EXCLUSIVE MODE/i)
-        seed = migration.index(/INSERT INTO tagged_notes/i)
+        seed = migration.index(/INSERT INTO notes_tags_cloud/i)
         assert lock, "expected the migration to lock the source table"
         assert_operator lock, :<, seed, "expected the lock to be taken before the seed"
       end
     end
 
     test "up migration creates a function per operation" do
-      assert_migration MIGRATION, /CREATE OR REPLACE FUNCTION metka_ins_tagged_notes/i
-      assert_migration MIGRATION, /CREATE OR REPLACE FUNCTION metka_upd_tagged_notes/i
-      assert_migration MIGRATION, /CREATE OR REPLACE FUNCTION metka_del_tagged_notes/i
+      assert_migration MIGRATION, /CREATE OR REPLACE FUNCTION metka_ins_notes_tags_cloud/i
+      assert_migration MIGRATION, /CREATE OR REPLACE FUNCTION metka_upd_notes_tags_cloud/i
+      assert_migration MIGRATION, /CREATE OR REPLACE FUNCTION metka_del_notes_tags_cloud/i
     end
 
     test "up migration creates statement-level triggers" do
@@ -90,9 +90,24 @@ class TableGeneratorTest < Rails::Generators::TestCase
     end
 
     test "down migration drops every function" do
-      assert_migration MIGRATION, /DROP FUNCTION IF EXISTS metka_ins_tagged_notes/i
-      assert_migration MIGRATION, /DROP FUNCTION IF EXISTS metka_upd_tagged_notes/i
-      assert_migration MIGRATION, /DROP FUNCTION IF EXISTS metka_del_tagged_notes/i
+      assert_migration MIGRATION, /DROP FUNCTION IF EXISTS metka_ins_notes_tags_cloud/i
+      assert_migration MIGRATION, /DROP FUNCTION IF EXISTS metka_upd_notes_tags_cloud/i
+      assert_migration MIGRATION, /DROP FUNCTION IF EXISTS metka_del_notes_tags_cloud/i
     end
+  end
+
+  test "derives the name from the source columns when given" do
+    prepare_destination
+    run_generator [ "--source-table-name=notes", "--source-columns=tags", "genres" ]
+
+    assert_migration "db/migrate/create_notes_tags_and_genres_cloud_table.rb",
+      /CREATE TABLE notes_tags_and_genres_cloud/i
+  end
+
+  test "respects an explicit --table-name" do
+    prepare_destination
+    run_generator [ "--source-table-name=notes", "--table-name=note_cloud" ]
+
+    assert_migration "db/migrate/create_note_cloud_table.rb", /CREATE TABLE note_cloud/i
   end
 end
