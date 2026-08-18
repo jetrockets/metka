@@ -8,17 +8,16 @@ module Metka
   #   Metka::GenericParser.instance.call("ruby, rails, ruby").to_s
   #   #=> "ruby, rails"
   class TagList < Set
-    SEPARATOR = ", "
-
     # Set#to_s is an alias of #inspect, so a tag list rendered itself as
     # "#<Set: {\"ruby\"}>". This is a user-facing value, so render it the way
-    # it was written instead.
+    # it was written.
     #
-    # Joining on Metka.delimiter would look tempting and be wrong: the
-    # delimiter is interpolated into a Regexp, so it holds a pattern rather
-    # than a separator — CustomParser's is the escaped '\|'.
+    # Joins on the configured delimiter, so it round-trips through the parser.
+    # A parser subclass that overrides #delimiter privately — as the dummy
+    # app's CustomParser does — is not visible from here, so a tag list it
+    # produced renders with the configured delimiter rather than that parser's.
     def to_s
-      to_a.join(SEPARATOR)
+      to_a.join("#{Metka.delimiter} ")
     end
   end
 end
