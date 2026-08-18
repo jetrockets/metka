@@ -34,7 +34,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'minitest', '>= 5.15'
   spec.add_development_dependency 'pg', '>= 1.1'
   spec.add_development_dependency 'rake', '>= 0.8.7'
-  spec.add_development_dependency 'timecop', '>= 0.9'
   spec.add_development_dependency 'rubocop-rails-omakase', '>= 1.1'
   spec.required_ruby_version = '>= 3.2'
 end
