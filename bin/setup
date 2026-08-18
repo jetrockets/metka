@@ -6,3 +6,10 @@ gem install bundler --conservative
 bundle check || bundle install
 
 RAILS_ENV=test bundle exec rake dummy:db:migrate:reset
+
+# SQLite resets by deleting the file, not through db:migrate:reset: the rake
+# composite drops the file while the booted app still holds an open handle, so
+# the migrations land on the unlinked inode and vanish when the process exits.
+# A fresh process migrating into a fresh file has no such problem.
+rm -f test/dummy/db/metka_test.sqlite3
+DB=sqlite RAILS_ENV=test bundle exec rake dummy:db:migrate

@@ -1,0 +1,131 @@
+Seeding 10000 posts per gem, 5 tags each, vocabulary of 100 tags
+
+Bulk seed wall time (10000 posts):
+  metka                            0.10 s
+  metka (table)                    0.08 s
+  metka (index)                    0.10 s
+  acts-as-taggable-on             31.43 s
+  gutentag                        35.30 s
+
+Storage (tables + indexes) for 10000 posts:
+  metka                            0.62 MB
+  metka (table)                    0.63 MB
+  acts-as-taggable-on             12.53 MB
+  gutentag                         7.20 MB
+  metka (index)                    1.39 MB
+
+========================================================================
+QUERY: tagged with ALL of 2 tags -> load records (~25 rows)
+========================================================================
+ruby 4.0.6 (2026-07-14 revision 03b6d3f889) +PRISM [x86_64-linux]
+Warming up --------------------------------------
+               metka    47.000 i/100ms
+       metka (index)   715.000 i/100ms
+ acts-as-taggable-on   326.000 i/100ms
+            gutentag   197.000 i/100ms
+Calculating -------------------------------------
+               metka    398.137 (± 2.3%) i/s    (2.51 ms/i) -      2.021k in   5.076143s
+       metka (index)      7.199k (± 2.9%) i/s  (138.90 μs/i) -     36.465k in   5.064972s
+ acts-as-taggable-on      3.189k (± 3.3%) i/s  (313.59 μs/i) -     15.974k in   5.009333s
+            gutentag      1.965k (± 4.4%) i/s  (508.87 μs/i) -      9.850k in   5.012329s
+
+Comparison:
+      metka (index):     7199.4 i/s
+acts-as-taggable-on:     3188.8 i/s - 2.26x  slower
+           gutentag:     1965.2 i/s - 3.66x  slower
+              metka:      398.1 i/s - 18.08x  slower
+
+========================================================================
+QUERY: tagged with ANY of 2 tags -> count
+========================================================================
+ruby 4.0.6 (2026-07-14 revision 03b6d3f889) +PRISM [x86_64-linux]
+Warming up --------------------------------------
+               metka    38.000 i/100ms
+       metka (index)   397.000 i/100ms
+ acts-as-taggable-on    41.000 i/100ms
+            gutentag   199.000 i/100ms
+Calculating -------------------------------------
+               metka    379.318 (± 2.1%) i/s    (2.64 ms/i) -      1.900k in   5.008996s
+       metka (index)      4.113k (± 3.7%) i/s  (243.13 μs/i) -     20.644k in   5.019114s
+ acts-as-taggable-on    410.036 (± 2.4%) i/s    (2.44 ms/i) -      2.091k in   5.099553s
+            gutentag      1.900k (± 6.4%) i/s  (526.34 μs/i) -      9.552k in   5.027612s
+
+Comparison:
+      metka (index):     4113.1 i/s
+           gutentag:     1899.9 i/s - 2.16x  slower
+acts-as-taggable-on:      410.0 i/s - 10.03x  slower
+              metka:      379.3 i/s - 10.84x  slower
+
+========================================================================
+TAG CLOUD: tag -> usage count across all 10000 posts
+========================================================================
+ruby 4.0.6 (2026-07-14 revision 03b6d3f889) +PRISM [x86_64-linux]
+Warming up --------------------------------------
+               metka    11.000 i/100ms
+       metka (table)     1.275k i/100ms
+ acts-as-taggable-on    11.000 i/100ms
+            gutentag     8.000 i/100ms
+Calculating -------------------------------------
+               metka    110.804 (± 2.7%) i/s    (9.02 ms/i) -    561.000 in   5.062986s
+       metka (table)     12.696k (± 2.2%) i/s   (78.76 μs/i) -     63.750k in   5.021086s
+ acts-as-taggable-on    110.668 (± 3.6%) i/s    (9.04 ms/i) -    561.000 in   5.069223s
+            gutentag     87.688 (± 2.3%) i/s   (11.40 ms/i) -    440.000 in   5.017818s
+
+Comparison:
+      metka (table):    12696.5 i/s
+              metka:      110.8 i/s - 114.58x  slower
+acts-as-taggable-on:      110.7 i/s - 114.73x  slower
+           gutentag:       87.7 i/s - 144.79x  slower
+
+========================================================================
+WRITE: create one post with 5 tags
+========================================================================
+ruby 4.0.6 (2026-07-14 revision 03b6d3f889) +PRISM [x86_64-linux]
+Warming up --------------------------------------
+               metka   776.000 i/100ms
+       metka (table)   683.000 i/100ms
+       metka (index)   522.000 i/100ms
+ acts-as-taggable-on    27.000 i/100ms
+            gutentag    28.000 i/100ms
+Calculating -------------------------------------
+               metka      7.783k (± 3.7%) i/s  (128.48 μs/i) -     39.576k in   5.084760s
+       metka (table)      6.895k (± 4.4%) i/s  (145.04 μs/i) -     34.833k in   5.052142s
+       metka (index)      5.349k (± 5.0%) i/s  (186.96 μs/i) -     27.144k in   5.074779s
+ acts-as-taggable-on    268.380 (± 5.2%) i/s    (3.73 ms/i) -      1.350k in   5.030173s
+            gutentag    284.410 (± 6.3%) i/s    (3.52 ms/i) -      1.428k in   5.020920s
+
+Comparison:
+              metka:     7783.3 i/s
+      metka (table):     6894.7 i/s - 1.13x  slower
+      metka (index):     5348.8 i/s - 1.46x  slower
+           gutentag:      284.4 i/s - 27.37x  slower
+acts-as-taggable-on:      268.4 i/s - 29.00x  slower
+
+========================================================================
+WRITE: replace the tag list of an existing post
+========================================================================
+ruby 4.0.6 (2026-07-14 revision 03b6d3f889) +PRISM [x86_64-linux]
+Warming up --------------------------------------
+               metka     1.199k i/100ms
+       metka (table)     1.200k i/100ms
+       metka (index)     1.196k i/100ms
+ acts-as-taggable-on    19.000 i/100ms
+            gutentag    19.000 i/100ms
+Calculating -------------------------------------
+               metka     12.670k (± 4.2%) i/s   (78.93 μs/i) -     63.547k in   5.015591s
+       metka (table)     12.604k (± 4.1%) i/s   (79.34 μs/i) -     63.600k in   5.045863s
+       metka (index)     12.696k (± 2.7%) i/s   (78.77 μs/i) -     64.584k in   5.087111s
+ acts-as-taggable-on    416.435 (±90.3%) i/s    (2.40 ms/i) -      2.090k in   5.018792s
+            gutentag    808.708 (± Inf%) i/s    (1.24 ms/i) -      4.047k in   5.004277s
+
+Comparison:
+      metka (index):    12695.6 i/s
+              metka:    12669.9 i/s - same-ish: difference falls within error
+      metka (table):    12604.4 i/s - same-ish: difference falls within error
+           gutentag:      808.7 i/s - 15.70x  slower
+acts-as-taggable-on:      416.4 i/s - 30.49x  slower
+
+
+Strategy integrity after all suites (0 = aggregate matches a live aggregation):
+  table mismatching tags: 0
+  index mismatching pairs: 0

@@ -7,6 +7,19 @@ class TaggedTablePostTest < ActiveSupport::TestCase
   TAG2 = "tag2"
   UNUSED_TAG = "tag3"
 
+  SQLITE = ActiveRecord::Base.connection.adapter_name.match?(/sqlite/i)
+
+  # Raw SQL that appends UNUSED_TAG to every row's tags array, exercising the
+  # triggers under a multi-row UPDATE. PostgreSQL array concatenation treats a
+  # NULL operand as empty; json_insert propagates NULL, so the SQLite form
+  # coalesces to an empty array to match.
+  APPEND_UNUSED_TAG =
+    if SQLITE
+      "tags = json_insert(COALESCE(tags, '[]'), '$[#]', '#{UNUSED_TAG}')"
+    else
+      "tags = tags || '{#{UNUSED_TAG}}'"
+    end
+
   # These rows stay in setup rather than moving to fixtures: the summary table
   # is maintained by triggers on INSERT, UPDATE and DELETE, so going through
   # the write path is the behaviour under test.
@@ -86,7 +99,7 @@ class TaggedTablePostTest < ActiveSupport::TestCase
 
   test "updates the counters after a multi-row update statement" do
     assert_difference -> { taggings_count(UNUSED_TAG) }, 2 do
-      TablePost.update_all("tags = tags || '{#{UNUSED_TAG}}'")
+      TablePost.update_all(APPEND_UNUSED_TAG)
     end
   end
 
@@ -110,15 +123,17 @@ class TaggedTablePostTest < ActiveSupport::TestCase
     ])
     @table_post_1.update!(tag_list: [ TAG2 ])
     @table_post_2.update!(title: "New title")
-    TablePost.update_all("tags = tags || '{#{UNUSED_TAG}}'")
+    TablePost.update_all(APPEND_UNUSED_TAG)
     @table_post_2.delete
     @table_post_1.update!(tag_list: nil)
 
-    live_aggregation = TablePost.connection.select_rows(<<~SQL)
-      SELECT tag_name, COUNT(*)
-      FROM (SELECT UNNEST(tags) AS tag_name FROM table_posts) subquery
-      GROUP BY tag_name
-    SQL
+    live_sql =
+      if SQLITE
+        "SELECT value, COUNT(*) FROM table_posts, json_each(table_posts.tags) GROUP BY value"
+      else
+        "SELECT tag_name, COUNT(*) FROM (SELECT UNNEST(tags) AS tag_name FROM table_posts) subquery GROUP BY tag_name"
+      end
+    live_aggregation = TablePost.connection.select_rows(live_sql)
 
     assert_equal live_aggregation.sort,
       TaggedTablePost.pluck(:tag_name, :taggings_count).sort

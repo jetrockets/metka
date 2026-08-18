@@ -66,3 +66,32 @@ jobs:
         bundle exec rake dummy:db:migrate:reset
     - name: Run Minitest
       run: bundle exec rake test
+
+  minitest-sqlite:
+    runs-on: ubuntu-latest
+    name: Ruby ${{ matrix.ruby }} / ${{ matrix.gemfile }} / SQLite
+    env:
+      BUNDLE_GEMFILE: ${{ matrix.gemfile }}
+      BUNDLE_JOBS: 4
+      BUNDLE_RETRY: 3
+      CI: true
+      RAILS_ENV: test
+      DB: sqlite
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - ruby: "3.4"
+          gemfile: "gemfiles/rails81.gemfile"
+        - ruby: "3.2"
+          gemfile: "gemfiles/rails71.gemfile"
+    steps:
+    - uses: actions/checkout@v5
+    - uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: ${{ matrix.ruby }}
+        bundler-cache: true
+    - name: Prepare test database
+      run: bundle exec rake dummy:db:migrate
+    - name: Run Minitest
+      run: bundle exec rake test

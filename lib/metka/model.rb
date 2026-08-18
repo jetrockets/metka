@@ -16,11 +16,17 @@ module Metka
     def initialize(columns:, **options)
       @columns = columns.dup.freeze
       @options = options.dup.freeze
+
+      unknown = index_tables.keys - @columns
+      if unknown.any?
+        raise ArgumentError, "index_tables declared for unknown columns #{unknown.inspect}, expected #{@columns.inspect}"
+      end
     end
 
     def included(base)
       define_column_scopes(base)
       define_tagged_with_scope(base)
+      define_index_tables(base)
       define_tag_clouds(base)
       define_tag_list_accessors(base)
     end
@@ -71,6 +77,16 @@ module Metka
       }
     end
 
+    # The index strategy (`rails g metka:strategies:index`) maintains a
+    # (tag_name, record_id) side table per tagged column. Declaring it here
+    # via `index_tables: { "tags" => "posts_tags_index" }` lets the SQLite
+    # query path answer from that table instead of scanning json_each.
+    def define_index_tables(base)
+      tables = index_tables
+
+      base.define_singleton_method(:metka_index_table) { |column| tables[column.to_s] }
+    end
+
     def define_tag_clouds(base)
       taggable = @columns
 
@@ -85,10 +101,24 @@ module Metka
           raise ArgumentError, "Unknown tag columns #{unknown.inspect}, expected #{taggable.inspect}"
         end
 
-        prepared_unnest = cloud_columns.map { |column|
+        quoted = cloud_columns.map { |column|
           connection.quote_table_name("#{table_name}.#{column}")
-        }.join(" || ")
-        subquery = all.select("UNNEST(#{prepared_unnest}) AS tag_name")
+        }
+
+        subquery =
+          if connection.adapter_name.match?(/sqlite/i)
+            # SQLite has no UNNEST; json_each unpacks each JSON array as a
+            # lateral cross join. Arrays cannot be concatenated the way
+            # PostgreSQL concatenates them, so multiple columns become one
+            # SELECT per column glued with UNION ALL — a NULL column joins to
+            # zero rows either way, matching UNNEST of a NULL array.
+            parts = quoted.map { |column|
+              all.select("json_each.value AS tag_name").joins("CROSS JOIN json_each(#{column})").to_sql
+            }
+            Arel.sql("(#{parts.join(" UNION ALL ")}) subquery")
+          else
+            all.select("UNNEST(#{quoted.join(" || ")}) AS tag_name")
+          end
 
         unscoped.from(subquery).group(:tag_name).pluck(:tag_name, Arel.sql("COUNT(*) AS taggings_count"))
       end
@@ -111,6 +141,10 @@ module Metka
           parser.call(send(column))
         end
       end
+    end
+
+    def index_tables
+      (@options[:index_tables] || {}).transform_keys(&:to_s).transform_values(&:to_s).freeze
     end
 
     # Metka.config.parser is looked up on every call so that reconfiguring it

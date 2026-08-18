@@ -1,0 +1,93 @@
+# frozen_string_literal: true
+
+class <%= @migration_class_name %> < ActiveRecord::Migration<%= ActiveRecord::VERSION::MAJOR < 5 ? '' : '[5.0]' %>
+  # A real table maintained by per-tag deltas. SQLite has no statement-level
+  # triggers or transition tables, so per-row triggers read NEW/OLD
+  # through json_each and apply the deltas one row at a time; multi-row
+  # statements (insert_all, update_all, delete_all) still keep exact counts
+  # because the trigger fires once per affected row. SQLite allows one writer
+  # per database and DDL is transactional, so nothing can write between the
+  # seed and CREATE TRIGGER and no explicit lock is needed. Writes that bypass
+  # the triggers (restoring from a dump) require reseeding the table by hand.
+  #
+  # Requires SQLite >= 3.35 for ON CONFLICT inside a trigger body. The
+  # WHERE true in the upsert disambiguates ON CONFLICT from a join clause in
+  # the INSERT ... SELECT form — a documented SQLite parser requirement.
+  # json_each(NULL) yields no rows, so NULL tagged columns need no guards, and
+  # a tag duplicated inside one row's array upserts once per occurrence —
+  # counted exactly as PostgreSQL's UNNEST-based triggers count it.
+  def up
+    execute <<-SQL
+    CREATE TABLE <%= table_name %> (
+      tag_name varchar PRIMARY KEY,
+      taggings_count bigint NOT NULL
+    );
+    SQL
+
+    execute <<-SQL
+    INSERT INTO <%= table_name %> (tag_name, taggings_count)
+      SELECT tag_name, COUNT(*)
+      FROM (
+        <%= source_columns.map { |column| "SELECT value AS tag_name FROM #{source_table_name}, json_each(#{source_table_name}.#{column})" }.join("\n        UNION ALL\n        ") %>
+      )
+      GROUP BY tag_name;
+    SQL
+
+    execute <<-SQL
+    CREATE TRIGGER metka_ins_on_<%= source_table_name %>_<%= source_columns_names %>
+    AFTER INSERT ON <%= source_table_name %>
+    FOR EACH ROW
+    BEGIN
+<% source_columns.each do |column| -%>
+      INSERT INTO <%= table_name %> (tag_name, taggings_count)
+      SELECT value, 1 FROM json_each(NEW.<%= column %>) WHERE true
+      ON CONFLICT (tag_name)
+      DO UPDATE SET taggings_count = taggings_count + 1;
+<% end -%>
+    END;
+    SQL
+
+    execute <<-SQL
+    CREATE TRIGGER metka_upd_on_<%= source_table_name %>_<%= source_columns_names %>
+    AFTER UPDATE OF <%= source_columns.join(", ") %> ON <%= source_table_name %>
+    FOR EACH ROW
+    BEGIN
+<% source_columns.each do |column| -%>
+      INSERT INTO <%= table_name %> (tag_name, taggings_count)
+      SELECT value, 1 FROM json_each(NEW.<%= column %>) WHERE true
+      ON CONFLICT (tag_name)
+      DO UPDATE SET taggings_count = taggings_count + 1;
+<% end -%>
+<% source_columns.each do |column| -%>
+      UPDATE <%= table_name %>
+      SET taggings_count = taggings_count -
+        (SELECT COUNT(*) FROM json_each(OLD.<%= column %>) WHERE value = tag_name)
+      WHERE tag_name IN (SELECT value FROM json_each(OLD.<%= column %>));
+<% end -%>
+      DELETE FROM <%= table_name %> WHERE taggings_count <= 0;
+    END;
+    SQL
+
+    execute <<-SQL
+    CREATE TRIGGER metka_del_on_<%= source_table_name %>_<%= source_columns_names %>
+    AFTER DELETE ON <%= source_table_name %>
+    FOR EACH ROW
+    BEGIN
+<% source_columns.each do |column| -%>
+      UPDATE <%= table_name %>
+      SET taggings_count = taggings_count -
+        (SELECT COUNT(*) FROM json_each(OLD.<%= column %>) WHERE value = tag_name)
+      WHERE tag_name IN (SELECT value FROM json_each(OLD.<%= column %>));
+<% end -%>
+      DELETE FROM <%= table_name %> WHERE taggings_count <= 0;
+    END;
+    SQL
+  end
+
+  def down
+    execute "DROP TRIGGER IF EXISTS metka_ins_on_<%= source_table_name %>_<%= source_columns_names %>;"
+    execute "DROP TRIGGER IF EXISTS metka_upd_on_<%= source_table_name %>_<%= source_columns_names %>;"
+    execute "DROP TRIGGER IF EXISTS metka_del_on_<%= source_table_name %>_<%= source_columns_names %>;"
+    execute "DROP TABLE IF EXISTS <%= table_name %>;"
+  end
+end

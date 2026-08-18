@@ -1,5 +1,14 @@
+<% if ENV["DB"] == "sqlite" || ENV["DB"] == "sqlite3" %>
+test:
+  adapter: sqlite3
+  # Absolute path: the gem's Rakefile loads the dummy app from the repo root,
+  # so a relative path would resolve differently for the db tasks (repo root)
+  # and the runtime connection (Rails.root).
+  database: <%= File.expand_path("../db/metka_test.sqlite3", __dir__) %>
+<% else %>
 test:
   adapter: postgresql
   hostname: localhost
   database: metka_test
   encoding: utf8
+<% end %>

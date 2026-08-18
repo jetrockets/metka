@@ -4,7 +4,7 @@
 
 # Metka
 
-A Rails tagging gem built on PostgreSQL array columns. Tags live in an indexed array column right on your table — no join tables, no extra models, no N+1 queries.
+A Rails tagging gem built on PostgreSQL array columns. Tags live in an indexed array column right on your table — no join tables, no extra models, no N+1 queries. SQLite is supported too: there the tags live in a JSON column and every query compiles to `json_each` probes (see [Database support](#database-support)).
 
 :exclamation: Requirements:
 
@@ -30,6 +30,70 @@ Or install it yourself as:
 ```bash
 gem install metka
 ```
+
+## Database support
+
+Metka works on PostgreSQL and SQLite, with the same API and the same matching
+semantics on both. The adapter is detected at query time, so nothing needs to
+be configured — only the migration differs:
+
+```ruby
+# PostgreSQL: an array column, indexed with GIN
+t.string :tags, array: true, default: [], index: { using: :gin }
+
+# SQLite: a JSON column holding an array of strings
+t.json :tags, default: []
+```
+
+On PostgreSQL, queries use the array containment operators (`@>`, `&&`) and
+are served by GIN indexes. On SQLite, tags are stored as a JSON array and
+queries compile to `EXISTS` probes over the `json_each` table-valued function.
+SQLite has no index type that can serve membership-in-array predicates, so by
+default tag queries there are table scans — fast at embedded-database scale
+because SQLite runs in-process, but growing linearly with the table. When
+that starts to matter, the opt-in [index strategy](#index-strategy-sqlite)
+turns tag queries into index seeks.
+
+The [table strategy](#table-strategy-with-triggers-recommended) works on both
+databases: the generator inspects the adapter and emits transition-table
+triggers for PostgreSQL or per-row `json_each` triggers for SQLite. SQLite
+3.35 or newer is required (the `sqlite3` gem bundles a current version).
+
+### Index Strategy (SQLite)
+
+The index strategy maintains one `(tag_name, record_id)` side table per
+tagged column — a `WITHOUT ROWID` table whose primary key doubles as a
+covering index — kept in step by per-row triggers, exactly like the table
+strategy maintains its counters. With it declared, `tagged_with` and the
+column scopes answer from index seeks (`INTERSECT` of per-tag seeks for
+"all", one `IN` probe for "any") instead of scanning `json_each`, with
+identical semantics: case-sensitive, any string is a valid tag, and rows
+with a `NULL` tag column behave exactly as before.
+
+```bash
+rails g metka:strategies:index --source-table-name=songs --source-columns=tags genres
+rails db:migrate
+```
+
+Then route queries through the tables by declaring them on the model:
+
+```ruby
+class Song < ActiveRecord::Base
+  include Metka::Model(
+    columns: %w[tags genres],
+    index_tables: {
+      "tags" => "songs_tags_index",
+      "genres" => "songs_genres_index"
+    }
+  )
+end
+```
+
+On PostgreSQL the generator produces nothing (GIN indexes already serve tag
+queries) and the `index_tables` declaration is inert, so the same model code
+runs on both adapters. The same ownership caveat as the table strategy
+applies: writes that bypass the triggers (restoring from a dump) require
+reseeding the index tables the way the migration seeds them.
 
 ## Tag objects
 
@@ -88,7 +152,7 @@ responsibility.
 
 ## Find tagged objects
 
-Every scope below builds on PostgreSQL's array operators (`@>` for "all", `&&` for "any"), so queries can use the GIN indexes created in the migration above. Passing an empty string or `nil` returns the unfiltered relation.
+Every scope below builds on PostgreSQL's array operators (`@>` for "all", `&&` for "any"), so queries can use the GIN indexes created in the migration above. On SQLite the same scopes compile to `EXISTS` probes over `json_each` with identical semantics. Passing an empty string or `nil` returns the unfiltered relation.
 
 ### .with_all_#{column_name}
 
@@ -333,6 +397,19 @@ INSERT INTO tagged_songs (tag_name, taggings_count)
 COMMIT;
 ```
 
+On SQLite the same reseed reads the arrays through `json_each` (no lock is
+needed — SQLite allows a single writer per database):
+
+```sql
+BEGIN;
+DELETE FROM tagged_songs;
+INSERT INTO tagged_songs (tag_name, taggings_count)
+  SELECT value, COUNT(*)
+  FROM songs, json_each(songs.tags)
+  GROUP BY value;
+COMMIT;
+```
+
 ### ActiveRecord Strategy (Zero Setup)
 
 Tagging statistics are available via class methods on any model that includes `Metka::Model`. You can build a cloud for a single tagged column or for several at once — in the latter case each tag's count is summed across the given columns. The ActiveRecord strategy is the easiest to use since it requires no additional code, but it is the slowest one on SELECT.
@@ -421,6 +498,35 @@ keeping it fresh, which stays within measurement noise:
 | none (live aggregation) | 212 | 1,619 | 8,293 | 0.21 s | 2.68 MB |
 | table | 9,025 | 1,495 | 8,131 | 0.17 s | 2.75 MB |
 
+### SQLite results
+
+The suite also runs on SQLite (`DB=sqlite`), against the gems that support it
+— acts-as-taggable-on and gutentag; acts-as-taggable-array-on and tag_columns
+are PostgreSQL-only and sit this one out. Same dataset and conventions as
+above (Ruby 4.0, Rails 8.1, SQLite 3.53). The metka column has the table
+aggregate in place; metka (index) adds the opt-in
+[index strategy](#index-strategy-sqlite), which changes only how queries are
+answered:
+
+| Operation | metka | metka (index) | acts-as-taggable-on | gutentag |
+| --- | --- | --- | --- | --- |
+| Query: ALL of 2 tags, load records | 398 | 7,199 | 3,189 | 1,965 |
+| Query: ANY of 2 tags, count | 379 | 4,113 | 410 | 1,900 |
+| Tag cloud over all posts | 12,697 | — | 111 | 88 |
+| Create post with 5 tags | 6,895 | 5,349 | 268 | 284 |
+| Replace tags of existing post | 12,604 | 12,696 | 416 | 809 |
+| Bulk seed 10k posts | 0.08 s | 0.10 s | 31.4 s | 35.3 s |
+| Storage, tables + indexes | 0.63 MB | 1.39 MB | 12.53 MB | 7.20 MB |
+
+By default the read rows flip against metka: SQLite has no GIN equivalent,
+so tag queries are `json_each` table scans (~2.5 ms at 10k rows, growing
+linearly) while the join-table gems keep their ordinary B-tree indexes. The
+index strategy takes the reads back — 18x over the scan and 2.3x faster
+than acts-as-taggable-on — for a modest price: creates run ~1.5x slower
+than bare metka (still ~20x ahead of the join-table gems), tag replacement
+stays within noise, and the side table adds ~0.8 MB per 10k posts. Writes,
+seeding and storage stay with metka by a wide margin in every setup.
+
 Keep in mind that these results alone can't prove one solution better than
 the others — each gem has unique features. The join-table gems maintain a
 normalized tag vocabulary (global renames, tag metadata, cross-model tags)
@@ -431,7 +537,7 @@ the suite yourself.
 
 ## Development
 
-After checking out the repo, run `bin/setup` to install dependencies and prepare the test database (a running PostgreSQL server is required). Then run `rake test` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+After checking out the repo, run `bin/setup` to install dependencies and prepare the test databases (a running PostgreSQL server is required; the SQLite database is a file created automatically). Then run `rake test` to run the tests against PostgreSQL, or `DB=sqlite rake test` to run them against SQLite. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
 
 To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
 
