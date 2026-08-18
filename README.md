@@ -414,125 +414,32 @@ end
 
 ## Benchmark Comparison
 
-There are some results of benchmarking a performance of write, read and find operations for different gems, that provide solution for tagging. Keep in mind, that those results can't be used as a proof, that some solution is better than the others, since each of the benchmarked gems has their unique features. You could run the benchmarks yourself or check, what exact operations has been used for benchmarking, with [MetkaBench application](https://github.com/jetrockets/metka_bench).
+Metka ships a [benchmark suite](benchmark/) comparing it to
+[acts-as-taggable-on](https://github.com/mbleigh/acts-as-taggable-on),
+[acts-as-taggable-array-on](https://github.com/tmiyamon/acts-as-taggable-array-on),
+[gutentag](https://github.com/pat/gutentag) and
+[tag_columns](https://github.com/hopsoft/tag_columns) on a shared dataset:
+10,000 posts per gem, 5 tags per post from a 100-tag vocabulary, identical
+seeded tag assignments. Iterations per second, higher is better (Ruby 4.0,
+Rails 8.1, PostgreSQL 18):
 
-```bash
-$ rake bench:all
-Deleted all MetkaSong
-Deleted all ActsAsTaggableOn::Tagging
-Deleted all ActsAsTaggableOn::Tag
-Deleted all ActsAsTaggableSong
-Deleted all ActsAsTaggableArraySong
-Deleted all TagColumnsSong
-Finished to clean
+| Operation | metka | taggable-array | tag_columns | acts-as-taggable-on | gutentag |
+| --- | --- | --- | --- | --- | --- |
+| Query: ALL of 2 tags, load records | 6,183 | 6,865 | 977 | 2,401 | 1,365 |
+| Query: ANY of 2 tags, count | 4,730 | 4,795 | 676 | 794 | 974 |
+| Tag cloud over all posts | 213 | 198 | 194 | 128 | 158 |
+| Create post with 5 tags | 1,604 | 1,634 | 1,659 | 203 | 197 |
+| Replace tags of existing post | 8,223 | 7,754 | 7,342 | 143 | 177 |
+| Bulk seed 10k posts | 0.21 s | 0.21 s | 0.21 s | 53.5 s | 49.8 s |
+| Storage, tables + indexes | 2.68 MB | 2.68 MB | 2.68 MB | 17.98 MB | 12.03 MB |
 
-###################################################################
-
-bench:write
-
-Time measurements:
-
-Rehearsal ----------------------------------------------------------
-Metka:                   2.192410   0.161092   2.353502 (  2.754766)
-ActsAsTaggableOn:       13.769918   0.554951  14.324869 ( 16.990127)
-ActsAsTaggableOnArray:   2.150441   0.154127   2.304568 (  2.700022)
-TagColumns:              2.202647   0.156162   2.358809 (  2.753400)
------------------------------------------------- total: 21.341748sec
-
-                             user     system      total        real
-Metka:                   2.137315   0.154046   2.291361 (  2.643363)
-ActsAsTaggableOn:       11.302848   0.448674  11.751522 ( 14.019458)
-ActsAsTaggableOnArray:   2.143134   0.128655   2.271789 (  2.670797)
-TagColumns:              2.133780   0.125749   2.259529 (  2.653404)
-
-Memory measurements:
-
-Calculating -------------------------------------
-Metka:                   179.064M memsize (     0.000  retained)
-                           1.689M objects (     0.000  retained)
-                          50.000  strings (     0.000  retained)
-ActsAsTaggableOn:        843.949M memsize (     0.000  retained)
-                           8.550M objects (     0.000  retained)
-                          50.000  strings (     0.000  retained)
-ActsAsTaggableOnArray:   178.807M memsize (     0.000  retained)
-                           1.684M objects (     0.000  retained)
-                          50.000  strings (     0.000  retained)
-TagColumns:              180.009M memsize (     0.000  retained)
-                           1.699M objects (     0.000  retained)
-                          50.000  strings (     0.000  retained)
-
-###################################################################
-
-bench:read
-
-Time measurements:
-
-Rehearsal ----------------------------------------------------------
-Metka:                   0.479695   0.044399   0.524094 (  0.590616)
-ActsAsTaggableOn:        2.436328   0.140581   2.576909 (  3.096142)
-ActsAsTaggableOnArray:   0.515198   0.042127   0.557325 (  0.623205)
-TagColumns:              0.518363   0.042661   0.561024 (  0.626968)
-------------------------------------------------- total: 4.219352sec
-
-                             user     system      total        real
-Metka:                   0.446751   0.041886   0.488637 (  0.554018)
-ActsAsTaggableOn:        2.395166   0.164500   2.559666 (  3.069655)
-ActsAsTaggableOnArray:   0.439608   0.041682   0.481290 (  0.544679)
-TagColumns:              0.435404   0.041623   0.477027 (  0.540359)
-
-Memory measurements:
-
-Calculating -------------------------------------
-Metka:                    42.291M memsize (     0.000  retained)
-                         388.694k objects (     0.000  retained)
-                          50.000  strings (     0.000  retained)
-ActsAsTaggableOn:        178.664M memsize (     0.000  retained)
-                           1.812M objects (     0.000  retained)
-                          50.000  strings (     0.000  retained)
-ActsAsTaggableOnArray:    42.173M memsize (     0.000  retained)
-                         383.003k objects (     0.000  retained)
-                          50.000  strings (     0.000  retained)
-TagColumns:               41.948M memsize (     0.000  retained)
-                         383.003k objects (     0.000  retained)
-                          50.000  strings (     0.000  retained)
-
-###################################################################
-
-bench:find_by_tag
-
-Time measurements:
-
-Rehearsal ----------------------------------------------------------
-Metka:                   0.029961   0.000059   0.030020 (  0.030052)
-ActsAsTaggableOn:        0.067095   0.000068   0.067163 (  0.067205)
-ActsAsTaggableOnArray:   0.043156   0.000133   0.043289 (  0.043440)
-TagColumns:              0.056475   0.000143   0.056618 (  0.056697)
-------------------------------------------------- total: 0.197090sec
-
-                             user     system      total        real
-Metka:                   0.028291   0.000019   0.028310 (  0.028321)
-ActsAsTaggableOn:        0.065925   0.000036   0.065961 (  0.065989)
-ActsAsTaggableOnArray:   0.043214   0.000079   0.043293 (  0.043361)
-TagColumns:              0.056390   0.000160   0.056550 (  0.056666)
-
-Memory measurements:
-
-Calculating -------------------------------------
-Metka:                     4.752M memsize (     0.000  retained)
-                          43.000k objects (     0.000  retained)
-                           1.000  strings (     0.000  retained)
-ActsAsTaggableOn:          8.967M memsize (     0.000  retained)
-                          81.002k objects (     0.000  retained)
-                           9.000  strings (     0.000  retained)
-ActsAsTaggableOnArray:     5.211M memsize (     0.000  retained)
-                          57.003k objects (     0.000  retained)
-                           6.000  strings (     0.000  retained)
-TagColumns:                6.696M memsize (     0.000  retained)
-                          94.003k objects (     0.000  retained)
-                           8.000  strings (     0.000  retained)
-
-Finished all benchmarks
-```
+Keep in mind that these results alone can't prove one solution better than
+the others — each gem has unique features. The join-table gems maintain a
+normalized tag vocabulary (global renames, tag metadata, cross-model tags)
+that array columns don't provide; their storage and write overhead buys those
+features. See [benchmark/README.md](benchmark/README.md) for methodology,
+analysis of the generated SQL and query plans, and instructions for running
+the suite yourself.
 
 ## Development
 
