@@ -19,8 +19,11 @@
 ```bash
 cd /home/igor/Work/metka/.claude/worktrees/tagging-table-naming-5cd0c9
 bundle install
-DB=sqlite bundle exec rake dummy:db:migrate:reset
+rm -f test/dummy/db/*.sqlite3 test/dummy/db/schema.rb
+RAILS_ENV=test DB=sqlite bundle exec rake dummy:db:migrate
 ```
+
+Always prefix rake/test commands with `RAILS_ENV=test` — the dummy app only configures the `test` environment. Do NOT use `dummy:db:migrate:reset` under SQLite: locally it leaves an empty database and dumps a stale empty `schema.rb` that then makes `maintain_test_schema` wipe the DB on test boot (CI's SQLite job uses plain `dummy:db:migrate` for the same reason). To reset, delete the `.sqlite3` file and any `test/dummy/db/schema.rb`, then `dummy:db:migrate`.
 
 SQLite always works locally. PostgreSQL runs the other template branch; if a local server is available (`psql -h localhost -U postgres -c 'select 1'` succeeds), also run the PG variants of each verification step (`bundle exec rake dummy:db:create dummy:db:migrate:reset`, no `DB` env var). If PG is unavailable, say so in the final report — CI runs both.
 
@@ -168,11 +171,12 @@ In the renamed file: class `TaggedTablePostTest` → `TablePostsTagsCloudTest`, 
 - [ ] **Step 4: Recreate the dummy DB and run the suite**
 
 ```bash
-DB=sqlite bundle exec rake dummy:db:migrate:reset
-DB=sqlite bundle exec ruby -Itest test/metka/table_posts_tags_cloud_test.rb
+rm -f test/dummy/db/*.sqlite3 test/dummy/db/schema.rb
+RAILS_ENV=test DB=sqlite bundle exec rake dummy:db:migrate
+RAILS_ENV=test DB=sqlite bundle exec ruby -Itest test/metka/table_posts_tags_cloud_test.rb
 ```
 
-Expected: migration reset succeeds (the renamed migration runs under its new class name); test PASS. If PostgreSQL is available, repeat both commands without `DB=sqlite`.
+Expected: migration succeeds (the renamed migration runs under its new class name); test PASS. If PostgreSQL is available, repeat with `bundle exec rake dummy:db:migrate:reset` / the test command without `DB=sqlite`.
 
 - [ ] **Step 5: Commit**
 
@@ -283,8 +287,9 @@ Co-Authored-By: Claude Fable 5 <noreply@anthropic.com>"
 - [ ] **Step 1: Run the whole suite on SQLite**
 
 ```bash
-DB=sqlite bundle exec rake dummy:db:migrate:reset
-DB=sqlite bundle exec rake test
+rm -f test/dummy/db/*.sqlite3 test/dummy/db/schema.rb
+RAILS_ENV=test DB=sqlite bundle exec rake dummy:db:migrate
+RAILS_ENV=test DB=sqlite bundle exec rake test
 ```
 
 Expected: 0 failures, 0 errors.
