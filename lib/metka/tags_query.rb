@@ -12,23 +12,34 @@ module Metka
       tags = tag_list.to_a
 
       if tags.one?
-        value = Arel::Nodes::SqlLiteral.new(
-          ActiveRecord::Base.sanitize_sql_for_conditions([ "?", tags.first ])
-        )
-
-        column_cast = Arel::Nodes::NamedFunction.new(
-          "ANY",
-          [ model.arel_table[column_name] ]
-        )
-
-        Arel::Nodes::Equality.new(value, column_cast)
+        tagged_with_one(model, column_name, tags.first)
       else
-        value = Arel::Nodes::SqlLiteral.new(
-          ActiveRecord::Base.sanitize_sql_for_conditions([ "ARRAY[?]::varchar[]", tags ])
-        )
-
-        Arel::Nodes::InfixOperation.new(@operator, model.arel_table[column_name], value)
+        tagged_with_many(model, column_name, tags)
       end
+    end
+
+    private
+
+    # A single tag matches identically under either operator, so ANY covers both.
+    def tagged_with_one(model, column_name, tag)
+      Arel::Nodes::Equality.new(
+        literal("?", tag),
+        Arel::Nodes::NamedFunction.new("ANY", [ model.arel_table[column_name] ])
+      )
+    end
+
+    def tagged_with_many(model, column_name, tags)
+      Arel::Nodes::InfixOperation.new(
+        @operator,
+        model.arel_table[column_name],
+        literal("ARRAY[?]::varchar[]", tags)
+      )
+    end
+
+    def literal(template, value)
+      Arel::Nodes::SqlLiteral.new(
+        ActiveRecord::Base.sanitize_sql_for_conditions([ template, value ])
+      )
     end
   end
 end
