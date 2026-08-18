@@ -31,12 +31,20 @@ class MaterializedViewGeneratorTest < Rails::Generators::TestCase
     assert_migration MIGRATION, /CREATE UNIQUE INDEX/i
   end
 
-  test "up migration creates trigger" do
-    assert_migration MIGRATION, /CREATE TRIGGER metka_on_notes/i
+  test "up migration creates a statement-level trigger per operation" do
+    assert_migration MIGRATION, /CREATE TRIGGER metka_ins_on_notes/i
+    assert_migration MIGRATION, /CREATE TRIGGER metka_upd_on_notes/i
+    assert_migration MIGRATION, /CREATE TRIGGER metka_del_on_notes/i
+    assert_migration MIGRATION do |migration|
+      assert_equal 3, migration.scan(/FOR EACH STATEMENT/i).size
+      assert_no_match(/FOR EACH ROW/i, migration)
+    end
   end
 
-  test "down migration drops trigger" do
-    assert_migration MIGRATION, /DROP TRIGGER IF EXISTS/i
+  test "down migration drops every trigger" do
+    assert_migration MIGRATION, /DROP TRIGGER IF EXISTS metka_ins_on_notes/i
+    assert_migration MIGRATION, /DROP TRIGGER IF EXISTS metka_upd_on_notes/i
+    assert_migration MIGRATION, /DROP TRIGGER IF EXISTS metka_del_on_notes/i
   end
 
   test "down migration drops function" do

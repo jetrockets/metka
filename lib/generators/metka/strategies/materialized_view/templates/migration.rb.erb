@@ -3,23 +3,38 @@
 class <%= @migration_class_name %> < ActiveRecord::Migration<%= ActiveRecord::VERSION::MAJOR < 5 ? '' : '[5.0]' %>
   def up
     execute <<-SQL
+    -- Statement-level triggers: one refresh per SQL statement, not per row.
+    -- Guards must stay inside their TG_OP branch — a transition table is only
+    -- registered for the firing trigger, so referencing the other one would
+    -- fail to parse.
     CREATE OR REPLACE FUNCTION metka_refresh_<%= view_name %>_materialized_view() RETURNS trigger LANGUAGE plpgsql AS $$
       BEGIN
-        IF TG_OP = 'INSERT' AND
-           (<%= source_columns.map { |column| "NEW.#{column} IS NOT NULL" }.join(' OR ') %>) THEN
-          REFRESH MATERIALIZED VIEW CONCURRENTLY <%= view_name %>;
+        IF TG_OP = 'INSERT' THEN
+          IF NOT EXISTS (
+            SELECT FROM new_rows
+            WHERE <%= source_columns.map { |column| "#{column} IS NOT NULL" }.join(' OR ') %>
+          ) THEN
+            RETURN NULL;
+          END IF;
+        ELSIF TG_OP = 'UPDATE' THEN
+          IF NOT EXISTS (
+            (SELECT <%= source_columns.join(', ') %> FROM new_rows)
+            EXCEPT ALL
+            (SELECT <%= source_columns.join(', ') %> FROM old_rows)
+          ) THEN
+            RETURN NULL;
+          END IF;
+        ELSIF TG_OP = 'DELETE' THEN
+          IF NOT EXISTS (
+            SELECT FROM old_rows
+            WHERE <%= source_columns.map { |column| "#{column} IS NOT NULL" }.join(' OR ') %>
+          ) THEN
+            RETURN NULL;
+          END IF;
         END IF;
 
-        IF TG_OP = 'UPDATE' AND
-           (<%= source_columns.map { |column| "OLD.#{column} IS DISTINCT FROM NEW.#{column}" }.join(' OR ') %>) THEN
-          REFRESH MATERIALIZED VIEW CONCURRENTLY <%= view_name %>;
-        END IF;
-
-        IF TG_OP = 'DELETE' AND
-           (<%= source_columns.map { |column| "OLD.#{column} IS NOT NULL" }.join(' OR ') %>) THEN
-          REFRESH MATERIALIZED VIEW CONCURRENTLY <%= view_name %>;
-        END IF;
-        RETURN NEW;
+        REFRESH MATERIALIZED VIEW CONCURRENTLY <%= view_name %>;
+        RETURN NULL;
       END $$;
 
     DROP MATERIALIZED VIEW IF EXISTS <%= view_name %>;
@@ -38,15 +53,35 @@ class <%= @migration_class_name %> < ActiveRecord::Migration<%= ActiveRecord::VE
 
     CREATE UNIQUE INDEX idx_<%= source_table_name %>_<%= source_columns_names %> ON <%= view_name %>(tag_name);
 
-    CREATE TRIGGER metka_on_<%= source_table_name %>_<%= source_columns_names %>
-    AFTER UPDATE OR INSERT OR DELETE ON <%= source_table_name %> FOR EACH ROW
+    -- The ins/upd/del discriminator sits at the front of the trigger names so
+    -- they stay distinct even when PostgreSQL truncates identifiers to 63
+    -- characters. One trigger per operation: a trigger with transition tables
+    -- must be declared for exactly one event.
+    CREATE TRIGGER metka_ins_on_<%= source_table_name %>_<%= source_columns_names %>
+    AFTER INSERT ON <%= source_table_name %>
+    REFERENCING NEW TABLE AS new_rows
+    FOR EACH STATEMENT
+    EXECUTE PROCEDURE metka_refresh_<%= view_name %>_materialized_view();
+
+    CREATE TRIGGER metka_upd_on_<%= source_table_name %>_<%= source_columns_names %>
+    AFTER UPDATE ON <%= source_table_name %>
+    REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows
+    FOR EACH STATEMENT
+    EXECUTE PROCEDURE metka_refresh_<%= view_name %>_materialized_view();
+
+    CREATE TRIGGER metka_del_on_<%= source_table_name %>_<%= source_columns_names %>
+    AFTER DELETE ON <%= source_table_name %>
+    REFERENCING OLD TABLE AS old_rows
+    FOR EACH STATEMENT
     EXECUTE PROCEDURE metka_refresh_<%= view_name %>_materialized_view();
     SQL
   end
 
   def down
     execute <<-SQL
-      DROP TRIGGER IF EXISTS metka_on_<%= source_table_name %>_<%= source_columns_names %> ON <%= source_table_name %>;
+      DROP TRIGGER IF EXISTS metka_ins_on_<%= source_table_name %>_<%= source_columns_names %> ON <%= source_table_name %>;
+      DROP TRIGGER IF EXISTS metka_upd_on_<%= source_table_name %>_<%= source_columns_names %> ON <%= source_table_name %>;
+      DROP TRIGGER IF EXISTS metka_del_on_<%= source_table_name %>_<%= source_columns_names %> ON <%= source_table_name %>;
       DROP FUNCTION IF EXISTS metka_refresh_<%= view_name %>_materialized_view;
       DROP MATERIALIZED VIEW IF EXISTS <%= view_name %>;
     SQL

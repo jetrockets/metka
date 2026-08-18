@@ -56,6 +56,27 @@ class TaggedMaterializedViewPostTest < ActiveSupport::TestCase
     end
   end
 
+  test "refreshes after a multi-row insert statement" do
+    assert_difference -> { taggings_count(UNUSED_TAG) }, 2 do
+      MaterializedViewPost.insert_all([
+        { user_id: users(:david).id, tags: [ UNUSED_TAG ] },
+        { user_id: users(:david).id, tags: [ UNUSED_TAG ] }
+      ])
+    end
+  end
+
+  test "refreshes after a multi-row update statement" do
+    assert_difference -> { taggings_count(UNUSED_TAG) }, 2 do
+      MaterializedViewPost.update_all("tags = tags || '{#{UNUSED_TAG}}'")
+    end
+  end
+
+  test "refreshes after a multi-row delete statement" do
+    assert_difference -> { taggings_count(TAG1) }, -2 do
+      MaterializedViewPost.delete_all
+    end
+  end
+
   test "decreases the counter on post tags nullify" do
     assert_difference -> { taggings_count(TAG1) }, -1 do
       @materialized_view_post_1.update(tag_list: nil)
