@@ -137,6 +137,27 @@ class MetkaModelTest < ActiveSupport::TestCase
     end
   end
 
+  # A typo used to be swallowed by the catch-all options hash and the query ran
+  # as though the option had never been passed.
+  test ".tagged_with raises on an unknown option" do
+    error = assert_raises(ArgumentError) { Post.tagged_with(%w[ruby], anyy: true).count }
+
+    assert_match(/Unknown tagged_with options \[:anyy\]/, error.message)
+  end
+
+  test ".tagged_with raises on an unknown option passed in a positional hash" do
+    assert_raises(ArgumentError) { Post.tagged_with(%w[ruby], { excludee: true }).count }
+  end
+
+  # These were positional-hash keys before they became keywords, and Ruby 3
+  # will not convert a positional hash into keywords on the caller's behalf.
+  test ".tagged_with still accepts a positional options hash" do
+    options = { any: true }
+
+    assert_equal Post.tagged_with(%w[ruby], any: true).count, Post.tagged_with(%w[ruby], options).count
+    assert_equal({ any: true }, options, "must not mutate the caller's hash")
+  end
+
   # Custom parser — User is tagged through CustomParser, which splits on "|"
 
   TAGS = "developer | senior"
