@@ -160,7 +160,7 @@ Song.tagged_with(nil)
 Song.tagged_with('rock')
 #=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
 
-Song.tagged_with('rock', join_operator: Metka::And)
+Song.tagged_with('rock', join_operator: Metka::AND)
 #=> []
 
 Song.tagged_with('chill', any: true)
@@ -193,6 +193,11 @@ Song.tagged_with('1990, 1980', any: true, exclude: true)
 Song.without_any_genres('rock, pop')
 #=> []
 ```
+
+`join_operator:` controls how multiple tagged columns combine: `Metka::OR`
+(the default) matches when any column satisfies the tags, `Metka::AND` requires
+every column to. The plain symbols `:or` and `:and` work too. Anything else
+raises `ArgumentError`.
 
 ## Custom delimiter
 

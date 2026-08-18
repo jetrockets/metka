@@ -3,9 +3,6 @@
 require "arel"
 
 module Metka
-  OR = Arel::Nodes::Or
-  AND = Arel::Nodes::And
-
   def self.Model(column: nil, columns: nil, **options)
     columns = [ column, *columns ].uniq.compact
     raise ArgumentError, "Columns not specified" unless columns.present?
