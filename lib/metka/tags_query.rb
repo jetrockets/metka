@@ -1,10 +1,12 @@
 # frozen_string_literal: true
 
-require "singleton"
-
 module Metka
-  class BaseQuery
-    include Singleton
+  class TagsQuery
+    OPERATORS = { all: "@>", any: "&&" }.freeze
+
+    def initialize(match: :all)
+      @operator = OPERATORS.fetch(match)
+    end
 
     def call(model, column_name, tag_list)
       tags = tag_list.to_a
@@ -25,7 +27,7 @@ module Metka
           ActiveRecord::Base.sanitize_sql_for_conditions([ "ARRAY[?]::varchar[]", tags ])
         )
 
-        Arel::Nodes::InfixOperation.new(infix_operator, model.arel_table[column_name], value)
+        Arel::Nodes::InfixOperation.new(@operator, model.arel_table[column_name], value)
       end
     end
   end
