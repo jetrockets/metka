@@ -340,7 +340,7 @@ rails g metka:strategies:table --source-table-name=NAME_OF_TABLE_WITH_TAGS [--so
 ```
 
 * If `--source-columns` is omitted, the `tags` column is used by default. When several columns are given, a tag found in more than one of them gets a single row in the summary table with the sum of its occurrences across all those columns.
-* `--table-name` is optional too. Without it, the table name is derived from the source table and column names — you can see it in the generated migration.
+* `--table-name` is optional too. Without it, the table is named `<source_table>_<columns>_cloud`, mirroring the index strategy's `<source_table>_<column>_index`: `songs_tags_cloud` for a `songs` table, or `books_authors_and_co_authors_cloud` when several columns are given.
 
 The generated migration creates the table, seeds it from the rows already present in `NAME_OF_TABLE_WITH_TAGS`, and installs one statement-level trigger per operation (`INSERT`, `UPDATE`, `DELETE`). The migration template can be seen [here](test/dummy/db/migrate/11_create_table_posts_tags_cloud_table.rb "here")
 
