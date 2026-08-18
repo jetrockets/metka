@@ -3,10 +3,10 @@
 require "test_helper"
 
 class MetkaTagsQueryTest < ActiveSupport::TestCase
-  test "matches a single tag with ANY regardless of match mode" do
-    assert_equal %('ruby' = ANY("posts"."tags")),
+  test "matches a single tag with the array operators so GIN indexes apply" do
+    assert_equal %("posts"."tags" @> ARRAY['ruby']::varchar[]),
       Metka::TagsQuery.new(match: :all).call(Post, "tags", [ "ruby" ]).to_sql
-    assert_equal %('ruby' = ANY("posts"."tags")),
+    assert_equal %("posts"."tags" && ARRAY['ruby']::varchar[]),
       Metka::TagsQuery.new(match: :any).call(Post, "tags", [ "ruby" ]).to_sql
   end
 
