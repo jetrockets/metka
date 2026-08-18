@@ -28,37 +28,44 @@ schemas come from each gem's own bundled migrations. Raw output of the last
 run is in `results.txt`.
 
 Metka is benchmarked twice in the cloud/write suites, once per tag-cloud
-aggregate: bare (no aggregate maintained) and `table` (statement-level
-triggers upsert per-tag deltas into a summary table). The table DDL matches
+aggregate: `table` (statement-level triggers upsert per-tag deltas into a
+summary table; this is what the main results table reports) and bare (no
+aggregate maintained, tag clouds computed on the fly). The table DDL matches
 the output of the `metka:strategies:table` generator.
 
 ## Results (Ruby 4.0.6, Rails 8.1, PostgreSQL 18.3, 10k posts)
 
 Higher i/s is better; multipliers are relative to the fastest gem per row.
+The metka column has the `metka:strategies:table` aggregate in place. Tag
+queries never touch the aggregate, so the two query rows are measured on the
+bare table and apply to either setup.
 
 | Operation | metka | taggable-array | tag_columns | acts-as-taggable-on | gutentag |
 | --- | --- | --- | --- | --- | --- |
 | Query: ALL of 2 tags, load records | 6,003 i/s | 6,725 i/s | 986 (6.8x slower) | 2,292 (2.9x slower) | 1,299 (5.2x slower) |
 | Query: ANY of 2 tags, count | 4,575 i/s | 4,479 i/s | 678 (6.7x slower) | 788 (5.8x slower) | 1,027 (4.5x slower) |
-| Tag cloud (counts over 10k posts) | 212 i/s | 204 i/s | 198 i/s | 127 (1.7x slower) | 161 (1.3x slower) |
-| Create post with 5 tags | 1,619 i/s | 1,634 i/s | 1,599 i/s | 204 (8.0x slower) | 196 (8.3x slower) |
-| Replace tags of existing post | 8,293 i/s | 7,766 i/s | 7,396 i/s | 190 (44x slower) | 183 (45x slower) |
-| Bulk seed 10k posts (`insert_all` where possible) | 0.21 s | 0.17 s | 0.16 s | 45.6 s | 50.2 s |
-| Storage, tables + indexes | 2.68 MB | 2.68 MB | 2.68 MB | 18.17 MB | 10.97 MB |
+| Tag cloud (counts over 10k posts) | 9,025 i/s | 204 (44x slower) | 198 (46x slower) | 127 (71x slower) | 161 (56x slower) |
+| Create post with 5 tags | 1,495 i/s | 1,634 i/s | 1,599 i/s | 204 (8.0x slower) | 196 (8.3x slower) |
+| Replace tags of existing post | 8,131 i/s | 7,766 i/s | 7,396 i/s | 190 (43x slower) | 183 (44x slower) |
+| Bulk seed 10k posts (`insert_all` where possible) | 0.17 s | 0.17 s | 0.16 s | 45.6 s | 50.2 s |
+| Storage, tables + indexes | 2.75 MB | 2.68 MB | 2.68 MB | 18.17 MB | 10.97 MB |
 
-Differences between metka and acts-as-taggable-array-on are within
-benchmark noise on every operation.
+On queries and writes, differences between metka and
+acts-as-taggable-array-on are within benchmark noise; on the tag cloud, the
+maintained summary table puts metka ~44x ahead of every gem that aggregates
+on the fly.
 
-The `table` tag-cloud strategy, same dataset (bare metka repeated for
+Bare metka — no aggregate maintained, tag clouds computed on the fly with
+`UNNEST .. GROUP BY` — on the same dataset (`table` strategy repeated for
 reference):
 
-| Operation | metka (bare) | metka (table) |
+| Operation | metka (table) | metka (bare) |
 | --- | --- | --- |
-| Tag cloud (counts over 10k posts) | 212 i/s | 9,025 i/s |
-| Create post with 5 tags | 1,619 i/s | 1,495 i/s |
-| Replace tags of existing post | 8,293 i/s | 8,131 i/s |
-| Bulk seed 10k posts | 0.21 s | 0.17 s |
-| Storage, tables + indexes | 2.68 MB | 2.75 MB |
+| Tag cloud (counts over 10k posts) | 9,025 i/s | 212 (43x slower) |
+| Create post with 5 tags | 1,495 i/s | 1,619 i/s |
+| Replace tags of existing post | 8,131 i/s | 8,293 i/s |
+| Bulk seed 10k posts | 0.17 s | 0.21 s |
+| Storage, tables + indexes | 2.75 MB | 2.68 MB |
 
 After all suites (tens of thousands of trigger firings), the maintained
 aggregate matched a live `UNNEST .. GROUP BY` aggregation exactly — the
@@ -74,7 +81,7 @@ script verifies this at the end of every run.
   `IN (SELECT ... GROUP BY ... HAVING COUNT(*))` subquery. Writes are the
   starkest difference: replacing a tag list is a one-column `UPDATE` for the
   array gems, while the join-table gems load current taggings, diff them, and
-  insert/delete rows plus counter-cache updates — hence 44–45x.
+  insert/delete rows plus counter-cache updates — hence the ~44x gap.
 - **tag_columns defeats its own index.** Its scopes wrap the column in
   `CAST(tags AS text[])`, and the planner will not use the GIN index on the
   column under a cast: `EXPLAIN` shows metka using a Bitmap Index Scan and
