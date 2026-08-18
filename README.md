@@ -375,7 +375,27 @@ And you can also create `TaggedNote` model to work with the view as with a Rails
 
 ### Table Strategy with Triggers
 
-TBD
+Data about taggings will be maintained in a real table with the same two columns as the views above, kept up to date by statement-level triggers. Instead of recomputing the whole aggregation like the Materialized View Strategy does on every refresh, the triggers read the statement's transition tables and apply per-tag deltas, so a write statement only touches the counters of the tags it actually changed. That keeps writes within measurement noise of an untriggered table while reads stay as fast as a plain indexed table — the trade-off is that it is an ordinary table, so anything that writes `NAME_OF_TABLE_WITH_TAGS` without firing the triggers (`TRUNCATE`, restoring from a dump) leaves the counters stale until you reseed the table by hand. The same ownership caveat as for raw column writes applies: keeping the counters honest is your responsibility the moment you go around the write path.
+
+```bash
+rails g metka:strategies:table --source-table-name=NAME_OF_TABLE_WITH_TAGS --source-columns=NAME_OF_COLUMN_1 NAME_OF_COLUMN_2 --table-name=NAME_OF_RESULTING_TABLE
+```
+
+All of the options for that strategy's generation command are the same as for the View Strategy, except that the resulting table's name is forced with `table-name` instead of `view-name`.
+
+The generated migration creates the table, seeds it from the rows already present in `NAME_OF_TABLE_WITH_TAGS`, and installs one statement-level trigger per operation (`INSERT`, `UPDATE`, `DELETE`). The migration template can be seen [here](test/dummy/db/migrate/11_create_tagged_table_posts_table.rb "here")
+
+With the same `notes` table with `tags` column the resulting table would have the same two columns
+
+| tag_name | taggings_count |
+|----------|----------------|
+| Ruby     | 124056         |
+| React    | 30632          |
+| Rails    | 28696          |
+| Crystal  | 6566           |
+| Elixir   | 3475           |
+
+And you can also create `TaggedNote` model to work with the table as with a Rails model.
 
 ## Inspired by
 
