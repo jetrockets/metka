@@ -8,6 +8,13 @@ class CreateTaggedTablePostsTable < ActiveRecord::Migration[5.0]
     -- maintenance cost is O(tags touched) instead of a full recompute. Writes
     -- that bypass these triggers (TRUNCATE, restoring from a dump) require
     -- reseeding the table by hand.
+
+    -- Block writes (reads stay unblocked) until the triggers exist: a write
+    -- committing between the seed's snapshot and CREATE TRIGGER would be seen
+    -- by neither and drift the counts. CREATE TRIGGER takes this same lock
+    -- level anyway; this only takes it before the seed instead of after.
+    LOCK TABLE table_posts IN SHARE ROW EXCLUSIVE MODE;
+
     CREATE TABLE tagged_table_posts (
       tag_name varchar PRIMARY KEY,
       taggings_count bigint NOT NULL

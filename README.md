@@ -259,9 +259,9 @@ Custom parser must be a singleton class that has a `.call` method that accepts t
 
 ## Tag Cloud Strategies
 
-There are several strategies to get tag statistics
+There are several strategies to get tag statistics. The ActiveRecord Strategy is what you get out of the box with zero setup; for anything beyond occasional clouds on small tables, the [Table Strategy](#table-strategy-with-triggers-recommended) is the recommended default — it reads like a pre-aggregated table and writes within measurement noise of having no strategy at all (see the [benchmark](#benchmark-comparison)).
 
-### ActiveRecord Strategy (Default)
+### ActiveRecord Strategy (Zero Setup)
 
 Data about taggings is accessible via class methods of your model with `Metka::Model` attached. You can calculate a cloud for a single tagged column or multiple columns, the latter case would return to you a sum of taggings from multiple tagged columns, that are provided as arguments, for each tag present. ActiveRecord Strategy is an easiest way to implement, since it wouldn't require any additional code, but it's the slowest one on SELECT.
 
@@ -373,7 +373,7 @@ With the same `notes` table with `tags` column the resulting view would have the
 
 And you can also create `TaggedNote` model to work with the view as with a Rails model.
 
-### Table Strategy with Triggers
+### Table Strategy with Triggers (Recommended)
 
 Data about taggings will be maintained in a real table with the same two columns as the views above, kept up to date by statement-level triggers. Instead of recomputing the whole aggregation like the Materialized View Strategy does on every refresh, the triggers read the statement's transition tables and apply per-tag deltas, so a write statement only touches the counters of the tags it actually changed. That keeps writes within measurement noise of a table with no triggers at all while reads stay as fast as a plain indexed table — the trade-off is that it is an ordinary table, so anything that writes `NAME_OF_TABLE_WITH_TAGS` without firing the triggers (`TRUNCATE`, restoring from a dump) leaves the counters stale until you reseed the table by hand. The same ownership caveat as for raw column writes applies: keeping the counters honest is your responsibility the moment you go around the write path.
 
@@ -396,6 +396,47 @@ With the same `notes` table with `tags` column the resulting table would have th
 | Elixir   | 3475           |
 
 And you can also create `TaggedNote` model to work with the table as with a Rails model.
+
+#### Migrating from on-the-fly tag clouds
+
+If you already tag rows with Metka and serve clouds straight off the model — `Song.tag_cloud`, `Book.author_cloud`, `Book.metka_cloud('authors', 'co_authors')` — the generated migration doubles as the migration path. It backfills the summary table from your existing rows and installs the triggers in the same transaction, locking the source table against writes (reads are not blocked) so no statement can slip between the backfill and the triggers; the counts are exact from the moment the migration commits, even under live traffic.
+
+Generate and run the migration, listing every column your cloud aggregates:
+
+```bash
+rails g metka:strategies:table --source-table-name=songs
+```
+
+```bash
+rails db:migrate
+```
+
+For a multi-column cloud like `Book.metka_cloud('authors', 'co_authors')` pass `--source-columns=authors co_authors`, and the seeded counts sum both columns exactly like `metka_cloud` does.
+
+Add a model for the summary table and swap the call sites — `tag_cloud` returns `[tag_name, count]` pairs, and the summary table stores the same data one row per tag:
+
+```ruby
+class TaggedSong < ActiveRecord::Base
+end
+
+Song.tag_cloud                                # before
+TaggedSong.pluck(:tag_name, :taggings_count)  # after
+```
+
+Sorting and limiting that used to happen in Ruby becomes a normal query: `TaggedSong.order(taggings_count: :desc).limit(50)`.
+
+Nothing about how you write tags changes: `tag_list=` and friends keep working, and the triggers keep the counts in step with every `INSERT`, `UPDATE` and `DELETE`, including bulk statements like `insert_all`, `update_all` and `delete_all`. If you ever write around the triggers (`TRUNCATE`, restoring from a dump), rebuild the table the same way the migration seeded it:
+
+```sql
+BEGIN;
+LOCK TABLE songs IN SHARE ROW EXCLUSIVE MODE;
+DELETE FROM tagged_songs;
+INSERT INTO tagged_songs (tag_name, taggings_count)
+  SELECT tag_name, COUNT(*)
+  FROM (SELECT UNNEST(tags) AS tag_name FROM songs) subquery
+  GROUP BY tag_name;
+COMMIT;
+```
 
 ## Inspired by
 
