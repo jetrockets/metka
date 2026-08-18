@@ -28,10 +28,12 @@ schemas come from each gem's own bundled migrations. Raw output of the last
 run is in `results.txt`.
 
 Metka is benchmarked three times in the cloud/write suites, once per
-tag-cloud strategy: bare (no aggregate maintained), `materialized_view`
+tag-cloud aggregate: bare (no aggregate maintained), `materialized_view`
 (statement-level triggers refresh a matview), and `table` (statement-level
-triggers upsert per-tag deltas into a summary table). The strategy DDL
-matches the output of the corresponding `metka:strategies:*` generators.
+triggers upsert per-tag deltas into a summary table). The table DDL matches
+the output of the `metka:strategies:table` generator; the materialized-view
+variant reproduces the DDL of a strategy Metka used to ship and stays in the
+suite as the comparison that motivated replacing it with the summary table.
 
 ## Results (Ruby 4.0.6, Rails 8.1, PostgreSQL 18.3, 10k posts)
 
@@ -94,7 +96,7 @@ script verifies this at the end of every run.
   a normalized tag vocabulary, which array columns don't give you: global
   rename in one place, tag metadata, taggings_count caches, cross-model tags,
   taggers/contexts (ATO). Metka's answer for aggregate views is the
-  view/materialized-view/table generators. If those features are unused,
+  `metka:strategies:table` generator. If those features are unused,
   the join tables are pure overhead — 4.4–6.6x on disk here.
 
 Caveats: single machine, Dockerized PostgreSQL with default settings, one
