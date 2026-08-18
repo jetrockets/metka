@@ -342,9 +342,9 @@ rails g metka:strategies:table --source-table-name=NAME_OF_TABLE_WITH_TAGS [--so
 * If `--source-columns` is omitted, the `tags` column is used by default. When several columns are given, a tag found in more than one of them gets a single row in the summary table with the sum of its occurrences across all those columns.
 * `--table-name` is optional too. Without it, the table name is derived from the source table and column names — you can see it in the generated migration.
 
-The generated migration creates the table, seeds it from the rows already present in `NAME_OF_TABLE_WITH_TAGS`, and installs one statement-level trigger per operation (`INSERT`, `UPDATE`, `DELETE`). The migration template can be seen [here](test/dummy/db/migrate/11_create_tagged_table_posts_table.rb "here")
+The generated migration creates the table, seeds it from the rows already present in `NAME_OF_TABLE_WITH_TAGS`, and installs one statement-level trigger per operation (`INSERT`, `UPDATE`, `DELETE`). The migration template can be seen [here](test/dummy/db/migrate/11_create_table_posts_tags_cloud_table.rb "here")
 
-For a `notes` table with a `tags` column the resulting `tagged_notes` table would look like this:
+For a `notes` table with a `tags` column the resulting `notes_tags_cloud` table would look like this:
 
 | tag_name | taggings_count |
 |----------|----------------|
@@ -354,7 +354,13 @@ For a `notes` table with a `tags` column the resulting `tagged_notes` table woul
 | Crystal  | 6566           |
 | Elixir   | 3475           |
 
-And you can also create `TaggedNote` model to work with the table as with a Rails model.
+And you can also create a model to work with the table as with a Rails model — set the table name explicitly, since Rails would infer the plural `notes_tags_clouds` from the class name:
+
+```ruby
+class NotesTagsCloud < ApplicationRecord
+  self.table_name = "notes_tags_cloud"
+end
+```
 
 #### Migrating from on-the-fly tag clouds
 
@@ -375,22 +381,23 @@ For a multi-column cloud like `Book.metka_cloud('authors', 'co_authors')` pass `
 Add a model for the summary table and swap the call sites — `tag_cloud` returns `[tag_name, count]` pairs, and the summary table stores the same data one row per tag:
 
 ```ruby
-class TaggedSong < ActiveRecord::Base
+class SongsTagsCloud < ActiveRecord::Base
+  self.table_name = "songs_tags_cloud"
 end
 
-Song.tag_cloud                                # before
-TaggedSong.pluck(:tag_name, :taggings_count)  # after
+Song.tag_cloud                                     # before
+SongsTagsCloud.pluck(:tag_name, :taggings_count)   # after
 ```
 
-Sorting and limiting that used to happen in Ruby becomes a normal query: `TaggedSong.order(taggings_count: :desc).limit(50)`.
+Sorting and limiting that used to happen in Ruby becomes a normal query: `SongsTagsCloud.order(taggings_count: :desc).limit(50)`.
 
 Nothing about how you write tags changes: `tag_list=` and friends keep working, and the triggers keep the counts in step with every `INSERT`, `UPDATE` and `DELETE`, including bulk statements like `insert_all`, `update_all` and `delete_all`. If you ever write around the triggers (`TRUNCATE`, restoring from a dump), rebuild the table the same way the migration seeded it:
 
 ```sql
 BEGIN;
 LOCK TABLE songs IN SHARE ROW EXCLUSIVE MODE;
-DELETE FROM tagged_songs;
-INSERT INTO tagged_songs (tag_name, taggings_count)
+DELETE FROM songs_tags_cloud;
+INSERT INTO songs_tags_cloud (tag_name, taggings_count)
   SELECT tag_name, COUNT(*)
   FROM (SELECT UNNEST(tags) AS tag_name FROM songs) subquery
   GROUP BY tag_name;
@@ -402,8 +409,8 @@ needed — SQLite allows a single writer per database):
 
 ```sql
 BEGIN;
-DELETE FROM tagged_songs;
-INSERT INTO tagged_songs (tag_name, taggings_count)
+DELETE FROM songs_tags_cloud;
+INSERT INTO songs_tags_cloud (tag_name, taggings_count)
   SELECT value, COUNT(*)
   FROM songs, json_each(songs.tags)
   GROUP BY value;
