@@ -14,6 +14,8 @@ module Metka
   end
 
   class Model < Module
+    TAGGED_WITH_OPTIONS = %i[any exclude join_operator on].freeze
+
     def initialize(columns:, **options)
       @columns = columns.dup.freeze
       @options = options.dup.freeze
@@ -49,16 +51,26 @@ module Metka
 
       columns = @columns
       parser = tag_parser
+      allowed = TAGGED_WITH_OPTIONS
 
-      base.scope :tagged_with, ->(tags = "", options = {}) {
-        options = { any: false }.merge(options)
-        options[:join_operator] ||= ::Metka::OR
-        tag_columns = options.delete(:on) || columns
+      # legacy_options carries the positional hash callers could pass before
+      # these became keywords. Ruby 3 will not convert one into keywords, so
+      # accepting it explicitly keeps `tagged_with(tags, options)` working.
+      base.scope :tagged_with, ->(tags = "", legacy_options = nil, **options) {
+        options = legacy_options.to_h.symbolize_keys.merge(options)
+        unknown = options.keys - allowed
+        if unknown.any?
+          raise ArgumentError, "Unknown tagged_with options #{unknown.inspect}, expected #{allowed.inspect}"
+        end
 
         tag_list = parser.call(tags)
         next self if tag_list.empty?
 
-        where(::Metka::QueryBuilder.new.call(self, tag_columns, tag_list, options))
+        where(::Metka::QueryBuilder.new.call(self, options[:on] || columns, tag_list, {
+          any: options.fetch(:any, false),
+          exclude: options[:exclude],
+          join_operator: options[:join_operator] || ::Metka::OR
+        }))
       }
     end
 
