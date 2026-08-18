@@ -28,4 +28,25 @@ class PostTest < ActiveSupport::TestCase
     assert_equal 1, Post.category_cloud.to_h["ruby"]
     assert_equal 3, Post.metka_cloud(:tags, :categories).to_h["ruby"]
   end
+
+  # metka_cloud is public and splats its arguments into raw SQL, so a caller
+  # passing params straight through used to reach the query unchecked.
+  test "rejects a column that was not declared taggable" do
+    error = assert_raises(ArgumentError) { Post.metka_cloud(:nope) }
+
+    assert_match(/Unknown tag columns/, error.message)
+  end
+
+  test "rejects an injection attempt rather than interpolating it" do
+    assert_raises(ArgumentError) { Post.metka_cloud("tags) AS x FROM posts; DROP TABLE posts --") }
+    assert_predicate Post, :any?, "posts table must survive"
+  end
+
+  test "accepts declared columns as strings or symbols" do
+    assert_equal Post.metka_cloud(:tags), Post.metka_cloud("tags")
+  end
+
+  test "returns nothing when given no columns" do
+    assert_empty Post.metka_cloud
+  end
 end
