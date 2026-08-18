@@ -19,6 +19,10 @@ module Metka
     end
 
     def call(value)
+      # A TagList is this parser's own output, so it is already split,
+      # stripped, and de-duplicated — hand it back rather than rebuilding it.
+      return value if value.is_a?(TagList)
+
       TagList.new.tap do |tag_list|
         case value
         when String
