@@ -63,7 +63,7 @@ module Metka
         tag_list = parser.call(tags)
         next self if tag_list.empty?
 
-        where(::Metka::QueryBuilder.new.call(self, options[:on] || columns, tag_list, {
+        where(::Metka::QueryBuilder.instance.call(self, options[:on] || columns, tag_list, {
           any: options.fetch(:any, false),
           exclude: options[:exclude],
           join_operator: options[:join_operator] || ::Metka::OR

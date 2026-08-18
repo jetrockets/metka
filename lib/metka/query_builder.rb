@@ -5,6 +5,16 @@ require_relative "tags_query"
 
 module Metka
   class QueryBuilder
+    # Stateless, so one frozen instance serves every tagged_with call.
+    def self.instance
+      @instance ||= new.freeze
+    end
+
+    STRATEGIES = {
+      all: TagsQuery.new(match: :all).freeze,
+      any: TagsQuery.new(match: :any).freeze
+    }.freeze
+
     JOINERS = {
       and: ->(nodes) { Arel::Nodes::And.new(nodes) },
       or: ->(nodes) { nodes.reduce(:or) }
@@ -18,7 +28,7 @@ module Metka
     }.freeze
 
     def call(model, columns, tags, options)
-      strategy = TagsQuery.new(match: options[:any].present? ? :any : :all)
+      strategy = STRATEGIES.fetch(options[:any].present? ? :any : :all)
       nodes = columns.map { |column| strategy.call(model, column, tags) }
       query = join(nodes, using: options[:join_operator])
 
