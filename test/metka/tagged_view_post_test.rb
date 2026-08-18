@@ -7,10 +7,12 @@ class TaggedViewPostTest < ActiveSupport::TestCase
   TAG2 = "tag2"
   UNUSED_TAG = "tag3"
 
+  # These rows stay in setup rather than moving to fixtures: the SQL view is
+  # aggregated from view_posts on write, so going through the write path is
+  # the behaviour under test.
   setup do
-    @user = User.create(name: Faker::Name.name)
-    @view_post_1 = ViewPost.create(user_id: @user.id, tag_list: TAG1)
-    @view_post_2 = ViewPost.create(user_id: @user.id, tag_list: [ TAG1, TAG2 ])
+    @view_post_1 = ViewPost.create!(user: users(:david), tag_list: TAG1)
+    @view_post_2 = ViewPost.create!(user: users(:david), tag_list: [ TAG1, TAG2 ])
   end
 
   test "has objects" do
@@ -32,7 +34,7 @@ class TaggedViewPostTest < ActiveSupport::TestCase
 
   test "increases the counter on post with tag addition" do
     assert_difference -> { taggings_count(TAG2) }, 1 do
-      ViewPost.create(user_id: @user.id, tag_list: TAG2)
+      ViewPost.create!(user: users(:david), tag_list: TAG2)
     end
   end
 

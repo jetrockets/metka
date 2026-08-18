@@ -1,19 +1,17 @@
 # frozen_string_literal: true
 
 require "arel"
-require_relative "query_builder/base_query"
-require_relative "query_builder/any_tags_query"
-require_relative "query_builder/all_tags_query"
+require_relative "tags_query"
 
 module Metka
   class QueryBuilder
     def call(model, columns, tags, options)
-      strategy = options_to_strategy(options)
+      strategy = TagsQuery.new(match: options[:any].present? ? :any : :all)
 
       query =
         join(options[:join_operator]) {
           columns.map do |column|
-            build_query(strategy, model, column, tags)
+            strategy.call(model, column, tags)
           end
         }
 
@@ -25,14 +23,6 @@ module Metka
     end
 
     private
-
-    def options_to_strategy(options)
-      if options[:any].present?
-        AnyTagsQuery
-      else
-        AllTagsQuery
-      end
-    end
 
     def join(operator, &block)
       nodes = block.call
@@ -62,10 +52,6 @@ module Metka
 
     def join_and(queries)
       Arel::Nodes::And.new(queries)
-    end
-
-    def build_query(strategy, model, column, tags)
-      strategy.instance.call(model, column, tags)
     end
   end
 end

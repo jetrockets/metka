@@ -3,22 +3,11 @@
 require "test_helper"
 
 class TaggedWithoutAnyTest < ActiveSupport::TestCase
-  setup do
-    user = User.create(name: Faker::Name.name)
-
-    # first post
-    Post.create(user_id: user.id, tags: [ "ruby", "elixir", "crystal" ], categories: [ "ruby", "programming" ])
-    # second post
-    Post.create(user_id: user.id, tags: [ "ruby", "rails", "react" ], categories: [ "programming", "backend" ])
-
-    @third_post = Post.create(user_id: user.id, tags: [ "php", "yii2", "angular" ], categories: [])
-  end
-
   test "returns collection without tag ruby" do
-    posts = Post.tagged_with("ruby", exclude: true, any: true)
+    result = Post.tagged_with("ruby", exclude: true, any: true)
 
-    assert_equal 1, posts.size
-    assert_equal @third_post, posts.first
+    assert_equal 1, result.size
+    assert_equal posts(:php_post), result.first
   end
 
   test "returns collection without tag backend" do

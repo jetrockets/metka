@@ -10,15 +10,17 @@ class TaggedWithTagsAndCategoriesMaterializedViewMultitagPostTest < ActiveSuppor
   SHARED_TAG = "sharedtag"
   UNUSED_TAG = "tag3"
 
+  # These rows stay in setup rather than moving to fixtures: the materialized
+  # view is refreshed by a trigger on INSERT, UPDATE and DELETE, so going
+  # through the write path is the behaviour under test.
   setup do
-    @user = User.create(name: Faker::Name.name)
-    @materialized_view_multitag_post_1 = MaterializedViewMultitagPost.create(
-      user_id: @user.id,
+    @materialized_view_multitag_post_1 = MaterializedViewMultitagPost.create!(
+      user: users(:david),
       tag_list: [ TAG1, SHARED_TAG ],
       category_list: [ CATEGORY1, CATEGORY2 ]
     )
-    @materialized_view_multitag_post_2 = MaterializedViewMultitagPost.create(
-      user_id: @user.id,
+    @materialized_view_multitag_post_2 = MaterializedViewMultitagPost.create!(
+      user: users(:david),
       tag_list: [ TAG1, TAG2 ],
       category_list: [ CATEGORY2, SHARED_TAG ]
     )
@@ -52,7 +54,7 @@ class TaggedWithTagsAndCategoriesMaterializedViewMultitagPostTest < ActiveSuppor
 
   test "increases the counter on post with tag addition" do
     assert_difference [ -> { taggings_count(TAG2) }, -> { taggings_count(CATEGORY1) } ], 1 do
-      MaterializedViewMultitagPost.create(user_id: @user.id, tag_list: TAG2, category_list: CATEGORY1)
+      MaterializedViewMultitagPost.create!(user: users(:david), tag_list: TAG2, category_list: CATEGORY1)
     end
   end
 

@@ -1,0 +1,18 @@
+# "ruby" appears in ruby_post's tags *and* its categories, which is what the
+# cloud tests lean on to prove taggings are summed across columns.
+# php_post is the only post sharing no tag with the other two.
+
+ruby_post:
+  user: david
+  tags: [ ruby, elixir, crystal ]
+  categories: [ ruby, programming ]
+
+rails_post:
+  user: david
+  tags: [ ruby, rails, react ]
+  categories: [ programming, backend ]
+
+php_post:
+  user: david
+  tags: [ php, yii2, angular ]
+  categories: []
