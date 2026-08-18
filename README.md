@@ -4,7 +4,7 @@
 
 # Metka
 
-Rails gem to manage tags with PostgreSQL array columns.
+A Rails tagging gem built on PostgreSQL array columns. Tags live in an indexed array column right on your table — no join tables, no extra models, no N+1 queries.
 
 :exclamation: Requirements:
 
@@ -38,7 +38,7 @@ rails g migration CreateSongs
 ```
 
 ```ruby
-class CreateSongs < ActiveRecord::Migration[5.0]
+class CreateSongs < ActiveRecord::Migration[7.1]
   def change
     create_table :songs do |t|
       t.string :title
@@ -87,6 +87,8 @@ This is by design: the column belongs to your schema, and Metka only owns the
 responsibility.
 
 ## Find tagged objects
+
+Every scope below builds on PostgreSQL's array operators (`@>` for "all", `&&` for "any"), so queries can use the GIN indexes created in the migration above. Passing an empty string or `nil` returns the unfiltered relation.
 
 ### .with_all_#{column_name}
 
@@ -200,9 +202,6 @@ Song.tagged_with('', any: true)
 Song.tagged_with('rock, rap', any: true, on: [ 'genres' ])
 #=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
 
-Song.without_all_tags('top')
-#=> []
-
 Song.tagged_with('top, 1990', exclude: true)
 #=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
 
@@ -214,27 +213,30 @@ Song.tagged_with('top, 1990', any: true, exclude: true)
 
 Song.tagged_with('1990, 1980', any: true, exclude: true)
 #=> [#<Song id: 1, title: 'Migrate tags in Rails to PostgreSQL', tags: ['top', 'chill'], genres: ['rock', 'jazz', 'pop']]
-
-Song.without_any_genres('rock, pop')
-#=> []
 ```
 
 `join_operator:` controls how multiple tagged columns combine: `Metka::OR`
 (the default) matches when any column satisfies the tags, `Metka::AND` requires
 every column to. The plain symbols `:or` and `:and` work too. Anything else
-raises `ArgumentError`.
+raises `ArgumentError`, as does any option other than `any:`, `exclude:`,
+`join_operator:` and `on:`.
 
 ## Custom delimiter
 
-By default, a comma is used as a delimiter to create tags from a string.
-You can make your own custom separator:
+By default, a comma is used to split a tag string into tags.
+You can configure your own delimiter:
 
 ```ruby
-Metka.config.delimiter = '|'
+Metka.delimiter = '|'
+
 parsed_data = Metka::GenericParser.instance.call('cool, data|I have')
 parsed_data.to_a
-#=>['cool, data', 'I have']
+#=> ['cool, data', 'I have']
 ```
+
+The setting is global and affects every model that uses the default parser.
+`Metka.config.delimiter = '|'` and `Metka.configure { |config| config.delimiter = '|' }`
+still work as well.
 
 ## Tags with quote
 
@@ -246,8 +248,8 @@ parsed_data.to_a
 
 ## Custom parser
 
-By default we use [generic_parser](lib/metka/generic_parser.rb "generic_parser")
-If you want to use your custom parser you can do:
+By default tags are parsed with [Metka::GenericParser](lib/metka/generic_parser.rb "generic_parser").
+To plug in your own parser for a specific model:
 
 ```ruby
 class Song < ActiveRecord::Base
@@ -255,7 +257,11 @@ class Song < ActiveRecord::Base
 end
 ```
 
-Custom parser must be a singleton class that has a `.call` method that accepts the tag string
+A parser is any object that responds to `call`, accepts the raw tag value (a
+string or an array) and returns a `Metka::TagList`. The simplest approach is to
+subclass `Metka::GenericParser`. You can also replace the parser globally with
+`Metka.parser = Your::Custom::Parser` — note that the global setting takes the
+singleton class itself, and `.instance` is called on it at parse time.
 
 ## Tag Cloud Strategies
 
@@ -263,36 +269,38 @@ There are several strategies to get tag statistics
 
 ### ActiveRecord Strategy (Default)
 
-Data about taggings is accessible via class methods of your model with `Metka::Model` attached. You can calculate a cloud for a single tagged column or multiple columns, the latter case would return to you a sum of taggings from multiple tagged columns, that are provided as arguments, for each tag present. ActiveRecord Strategy is an easiest way to implement, since it wouldn't require any additional code, but it's the slowest one on SELECT.
+Tagging statistics are available via class methods on any model that includes `Metka::Model`. You can build a cloud for a single tagged column or for several at once — in the latter case each tag's count is summed across the given columns. The ActiveRecord strategy is the easiest to use since it requires no additional code, but it is the slowest one on SELECT.
 
 ```ruby
-
 class Book < ActiveRecord::Base
-  include Metka::Model(column: 'authors')
-  include Metka::Model(column: 'co_authors')
+  include Metka::Model(columns: %w[authors co_authors])
 end
 
-tag_cloud = Book.author_cloud
+author_cloud = Book.author_cloud
 #=> [["L.N. Tolstoy", 3], ["F.M. Dostoevsky", 6]]
-genre_cloud = Book.co_author_cloud
+co_author_cloud = Book.co_author_cloud
 #=> [["A.P. Chekhov", 5], ["N.V. Gogol", 8], ["L.N. Tolstoy", 2]]
 summary_cloud = Book.metka_cloud('authors', 'co_authors')
 #=> [["L.N. Tolstoy", 5], ["F.M. Dostoevsky", 6], ["A.P. Chekhov", 5], ["N.V. Gogol", 8]]
 ```
 
+`metka_cloud` accepts only columns declared in `Metka::Model`; anything else
+raises `ArgumentError`.
+
 ### View Strategy
 
-Data about taggings will be aggregated in SQL View. Performance-wise that strategy has no benefits over ActiveRecord Strategy, but if you need to store tags aggregations in a distinct model, that's an easiest way to achieve it.
+Tagging data is aggregated in an SQL view. Performance-wise this strategy has no benefits over the ActiveRecord strategy, but if you want to expose tag aggregations as a separate model, this is the easiest way to do it.
 
 ```bash
 rails g metka:strategies:view --source-table-name=NAME_OF_TABLE_WITH_TAGS [--source-columns=NAME_OF_COLUMN_1 NAME_OF_COLUMN_2] [--view-name=NAME_OF_RESULTING_VIEW]
 ```
 
-The code above will generate a migration that creates view with specified `NAME_OF_RESULTING_VIEW`, that would aggregate tags data from specified array of tagged columns [`NAME_OF_COLUMN_1`, `NAME_OF_COLUMN_2`, ...], that are present within specified table `NAME_OF_TABLE_WITH_TAGS`.
-If `source-columns` option is not provided, then `tags` column would be used as defaults. If array of multiple values would be provided to the option, then the aggregation would be made with the tags from multiple tagged columns, so if a single tag would be found within multiple tagged columns, the resulting aggregation inside the view would have a single row for that tag with a sum of it's occurrences across all stated tagged columns.
-`view-name` option is also optional, it would just force the resulting view's name to the one of your choice. If it's not provided, then view name would be generated automatically, you could check it within generated migration.
+The command generates a migration that creates a view aggregating tag data from the listed tagged columns of `NAME_OF_TABLE_WITH_TAGS`.
 
-Lets take a look at real example. We have a `notes` table with `tags` column.
+* If `--source-columns` is omitted, the `tags` column is used by default. When several columns are given, a tag found in more than one of them gets a single row in the view with the sum of its occurrences across all those columns.
+* `--view-name` is optional too. Without it, the view name is derived from the table and column names — you can see it in the generated migration.
+
+Let's take a look at a real example. We have a `notes` table with a `tags` column.
 
 | Column | Type                | Default                           |
 |--------|---------------------|-----------------------------------|
@@ -300,7 +308,7 @@ Lets take a look at real example. We have a `notes` table with `tags` column.
 | body   | text                |                                   |
 | tags   | character varying[] | '{}'::character varying[]         |
 
-Now lets generate a migration.
+Now let's generate a migration.
 
 ```bash
 rails g metka:strategies:view --source-table-name=notes
@@ -314,18 +322,18 @@ The result would be:
 class CreateTaggedNotesView < ActiveRecord::Migration[5.0]
   def up
     execute <<-SQL
-      CREATE OR REPLACE VIEW tagged_notes AS
-        SELECT
-          tag_name,
-          COUNT ( * ) AS taggings_count
-        FROM (
-          SELECT UNNEST
-            ( tags ) AS tag_name
-          FROM
-            view_posts
-        ) subquery
-        GROUP BY
-          tag_name;
+    CREATE OR REPLACE VIEW tagged_notes AS
+      SELECT
+        tag_name,
+        COUNT(*) AS taggings_count
+      FROM (
+        SELECT UNNEST
+          (tags) AS tag_name
+        FROM
+          notes
+      ) subquery
+      GROUP BY
+        tag_name;
     SQL
   end
 
@@ -337,7 +345,7 @@ class CreateTaggedNotesView < ActiveRecord::Migration[5.0]
 end
 ```
 
-Now lets take a look at `tagged_notes` view.
+Now let's take a look at the `tagged_notes` view.
 
 | tag_name | taggings_count |
 |----------|----------------|
@@ -351,17 +359,17 @@ Now you can create `TaggedNote` model and work with the view like you usually do
 
 ### Materialized View Strategy
 
-Data about taggings will be aggregated in SQL Materialized View, that would be refreshed by statement-level triggers — once per INSERT, UPDATE or DELETE statement that changes the tagged columns' data, no matter how many rows the statement touches. Except for the another type of view being used, that strategy behaves the same way, as a View Strategy above.
+Tagging data is aggregated in an SQL materialized view that is refreshed by statement-level triggers — once per INSERT, UPDATE or DELETE statement that changes the tagged columns' data, no matter how many rows the statement touches. Apart from the type of view being used, this strategy behaves the same way as the View Strategy above.
 
 ```bash
-rails g metka:strategies:materialized_view --source-table-name=NAME_OF_TABLE_WITH_TAGS --source-columns=NAME_OF_COLUMN_1 NAME_OF_COLUMN_2 --view-name=NAME_OF_RESULTING_VIEW
+rails g metka:strategies:materialized_view --source-table-name=NAME_OF_TABLE_WITH_TAGS [--source-columns=NAME_OF_COLUMN_1 NAME_OF_COLUMN_2] [--view-name=NAME_OF_RESULTING_VIEW]
 ```
 
-All of the options for that strategy's generation command are the same as for the View Strategy.
+All of the options are the same as for the View Strategy.
 
 The migration template can be seen [here](test/dummy/db/migrate/06_create_tagged_materialized_view_posts_materialized_view.rb "here")
 
-With the same `notes` table with `tags` column the resulting view would have the same two columns
+With the same `notes` table and `tags` column, the resulting view has the same two columns
 
 | tag_name | taggings_count |
 |----------|----------------|
@@ -385,10 +393,10 @@ TBD
 
 ## Migration from ActsAsTaggable
 
-To migrate your data from `ActsAsTaggable` can be done with the following migration.
+Migrating your data from `ActsAsTaggable` can be done with a migration like the following.
 
 ```ruby
-class AddTagsToYourTable < ActiveRecord::Migration[6.0]
+class AddTagsToYourTable < ActiveRecord::Migration[7.1]
   def change
     add_column :your_table, :tags, :string, array: true
     add_index :your_table, :tags, using: 'gin'
@@ -403,7 +411,7 @@ class AddTagsToYourTable < ActiveRecord::Migration[6.0]
         INNER JOIN taggings
                 ON tags.id = taggings.tag_id
         WHERE
-          taggings.taggable_type = 'YouTableType'
+          taggings.taggable_type = 'YourTableType'
         GROUP BY taggings.taggable_id
       ) as tags
       WHERE your_table.id = tags.your_table_id
@@ -443,7 +451,7 @@ the suite yourself.
 
 ## Development
 
-After checking out the repo, run `bin/setup` to install dependencies. Then, run `rake spec` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
+After checking out the repo, run `bin/setup` to install dependencies and prepare the test database (a running PostgreSQL server is required). Then run `rake test` to run the tests. You can also run `bin/console` for an interactive prompt that will allow you to experiment.
 
 To install this gem onto your local machine, run `bundle exec rake install`. To release a new version, update the version number in `version.rb`, and then run `bundle exec rake release`, which will create a git tag for the version, push git commits and tags, and push the `.gem` file to [rubygems.org](https://rubygems.org).
 
@@ -453,8 +461,7 @@ Bug reports and pull requests are welcome on GitHub at [https://github.com/jetro
 
 ## Credits
 
-![JetRockets](https://media.jetrockets.pro/jetrockets-white.png)
-Metka is maintained by [JetRockets](http://www.jetrockets.ru).
+Metka is maintained by [JetRockets](https://jetrockets.com).
 
 ## License
 
@@ -462,4 +469,4 @@ The gem is available as open source under the terms of the [MIT License](https:/
 
 ## Code of Conduct
 
-Everyone interacting in the Metka project’s codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/[USERNAME]/metka/blob/master/CODE_OF_CONDUCT.md).
+Everyone interacting in the Metka project’s codebases, issue trackers, chat rooms and mailing lists is expected to follow the [code of conduct](https://github.com/jetrockets/metka/blob/master/CODE_OF_CONDUCT.md).
