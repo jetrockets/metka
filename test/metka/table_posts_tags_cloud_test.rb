@@ -2,7 +2,7 @@
 
 require "test_helper"
 
-class TaggedTablePostTest < ActiveSupport::TestCase
+class TablePostsTagsCloudTest < ActiveSupport::TestCase
   TAG1 = "tag1"
   TAG2 = "tag2"
   UNUSED_TAG = "tag3"
@@ -29,20 +29,20 @@ class TaggedTablePostTest < ActiveSupport::TestCase
   end
 
   test "has objects" do
-    assert_predicate TaggedTablePost.all, :present?
+    assert_predicate TablePostsTagsCloud.all, :present?
   end
 
   test "has right taggings count" do
-    assert_equal 2, TaggedTablePost.find_by(tag_name: TAG1).taggings_count
-    assert_equal 1, TaggedTablePost.find_by(tag_name: TAG2).taggings_count
+    assert_equal 2, TablePostsTagsCloud.find_by(tag_name: TAG1).taggings_count
+    assert_equal 1, TablePostsTagsCloud.find_by(tag_name: TAG2).taggings_count
   end
 
   test "has uniq tag_name" do
-    assert_equal 1, TaggedTablePost.where(tag_name: TAG1).count
+    assert_equal 1, TablePostsTagsCloud.where(tag_name: TAG1).count
   end
 
   test "dont have unused tag" do
-    assert_empty TaggedTablePost.where(tag_name: UNUSED_TAG)
+    assert_empty TablePostsTagsCloud.where(tag_name: UNUSED_TAG)
   end
 
   test "increases the counter on post with tag addition" do
@@ -52,7 +52,7 @@ class TaggedTablePostTest < ActiveSupport::TestCase
   end
 
   test "does not create rows for a post without tags" do
-    assert_no_difference -> { TaggedTablePost.count } do
+    assert_no_difference -> { TablePostsTagsCloud.count } do
       TablePost.create!(user: users(:david))
     end
   end
@@ -67,7 +67,7 @@ class TaggedTablePostTest < ActiveSupport::TestCase
     @table_post_2.update!(tag_list: TAG1)
     TablePost.delete_all
 
-    assert_empty TaggedTablePost.where(tag_name: TAG1)
+    assert_empty TablePostsTagsCloud.where(tag_name: TAG1)
   end
 
   test "increases the counter on post tags expansion via update" do
@@ -136,10 +136,10 @@ class TaggedTablePostTest < ActiveSupport::TestCase
     live_aggregation = TablePost.connection.select_rows(live_sql)
 
     assert_equal live_aggregation.sort,
-      TaggedTablePost.pluck(:tag_name, :taggings_count).sort
+      TablePostsTagsCloud.pluck(:tag_name, :taggings_count).sort
   end
 
   private def taggings_count(tag_name)
-    TaggedTablePost.find_by(tag_name: tag_name)&.taggings_count.to_i
+    TablePostsTagsCloud.find_by(tag_name: tag_name)&.taggings_count.to_i
   end
 end

@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-class CreateTaggedTablePostsTable < ActiveRecord::Migration[5.0]
+class CreateTablePostsTagsCloudTable < ActiveRecord::Migration[5.0]
   def up
     connection.adapter_name.match?(/sqlite/i) ? up_sqlite : up_postgresql
   end
@@ -19,14 +19,14 @@ class CreateTaggedTablePostsTable < ActiveRecord::Migration[5.0]
   # between the seed and CREATE TRIGGER — nothing can write in between.
   def up_sqlite
     execute <<-SQL
-    CREATE TABLE tagged_table_posts (
+    CREATE TABLE table_posts_tags_cloud (
       tag_name varchar PRIMARY KEY,
       taggings_count bigint NOT NULL
     );
     SQL
 
     execute <<-SQL
-    INSERT INTO tagged_table_posts (tag_name, taggings_count)
+    INSERT INTO table_posts_tags_cloud (tag_name, taggings_count)
       SELECT value, COUNT(*)
       FROM table_posts, json_each(table_posts.tags)
       GROUP BY value;
@@ -41,7 +41,7 @@ class CreateTaggedTablePostsTable < ActiveRecord::Migration[5.0]
     AFTER INSERT ON table_posts
     FOR EACH ROW
     BEGIN
-      INSERT INTO tagged_table_posts (tag_name, taggings_count)
+      INSERT INTO table_posts_tags_cloud (tag_name, taggings_count)
       SELECT value, 1 FROM json_each(NEW.tags) WHERE true
       ON CONFLICT (tag_name)
       DO UPDATE SET taggings_count = taggings_count + 1;
@@ -53,17 +53,17 @@ class CreateTaggedTablePostsTable < ActiveRecord::Migration[5.0]
     AFTER UPDATE OF tags ON table_posts
     FOR EACH ROW
     BEGIN
-      INSERT INTO tagged_table_posts (tag_name, taggings_count)
+      INSERT INTO table_posts_tags_cloud (tag_name, taggings_count)
       SELECT value, 1 FROM json_each(NEW.tags) WHERE true
       ON CONFLICT (tag_name)
       DO UPDATE SET taggings_count = taggings_count + 1;
 
-      UPDATE tagged_table_posts
+      UPDATE table_posts_tags_cloud
       SET taggings_count = taggings_count -
         (SELECT COUNT(*) FROM json_each(OLD.tags) WHERE value = tag_name)
       WHERE tag_name IN (SELECT value FROM json_each(OLD.tags));
 
-      DELETE FROM tagged_table_posts WHERE taggings_count <= 0;
+      DELETE FROM table_posts_tags_cloud WHERE taggings_count <= 0;
     END;
     SQL
 
@@ -72,12 +72,12 @@ class CreateTaggedTablePostsTable < ActiveRecord::Migration[5.0]
     AFTER DELETE ON table_posts
     FOR EACH ROW
     BEGIN
-      UPDATE tagged_table_posts
+      UPDATE table_posts_tags_cloud
       SET taggings_count = taggings_count -
         (SELECT COUNT(*) FROM json_each(OLD.tags) WHERE value = tag_name)
       WHERE tag_name IN (SELECT value FROM json_each(OLD.tags));
 
-      DELETE FROM tagged_table_posts WHERE taggings_count <= 0;
+      DELETE FROM table_posts_tags_cloud WHERE taggings_count <= 0;
     END;
     SQL
   end
@@ -86,7 +86,7 @@ class CreateTaggedTablePostsTable < ActiveRecord::Migration[5.0]
     execute "DROP TRIGGER IF EXISTS metka_ins_on_table_posts_tags;"
     execute "DROP TRIGGER IF EXISTS metka_upd_on_table_posts_tags;"
     execute "DROP TRIGGER IF EXISTS metka_del_on_table_posts_tags;"
-    execute "DROP TABLE IF EXISTS tagged_table_posts;"
+    execute "DROP TABLE IF EXISTS table_posts_tags_cloud;"
   end
 
   def up_postgresql
@@ -103,12 +103,12 @@ class CreateTaggedTablePostsTable < ActiveRecord::Migration[5.0]
     -- level anyway; this only takes it before the seed instead of after.
     LOCK TABLE table_posts IN SHARE ROW EXCLUSIVE MODE;
 
-    CREATE TABLE tagged_table_posts (
+    CREATE TABLE table_posts_tags_cloud (
       tag_name varchar PRIMARY KEY,
       taggings_count bigint NOT NULL
     );
 
-    INSERT INTO tagged_table_posts (tag_name, taggings_count)
+    INSERT INTO table_posts_tags_cloud (tag_name, taggings_count)
       SELECT
         tag_name,
         COUNT(*) AS taggings_count
@@ -125,9 +125,9 @@ class CreateTaggedTablePostsTable < ActiveRecord::Migration[5.0]
     -- NULL operand as empty, so NULL tagged columns need no explicit guards.
     -- One function per operation: a transition table is only registered for
     -- its own trigger, so the other operations' functions would fail to parse.
-    CREATE OR REPLACE FUNCTION metka_ins_tagged_table_posts() RETURNS trigger LANGUAGE plpgsql AS $$
+    CREATE OR REPLACE FUNCTION metka_ins_table_posts_tags_cloud() RETURNS trigger LANGUAGE plpgsql AS $$
       BEGIN
-        INSERT INTO tagged_table_posts (tag_name, taggings_count)
+        INSERT INTO table_posts_tags_cloud (tag_name, taggings_count)
         SELECT tag_name, COUNT(*)
         FROM (
           SELECT UNNEST (tags) AS tag_name
@@ -135,11 +135,11 @@ class CreateTaggedTablePostsTable < ActiveRecord::Migration[5.0]
         ) subquery
         GROUP BY tag_name
         ON CONFLICT (tag_name)
-        DO UPDATE SET taggings_count = tagged_table_posts.taggings_count + EXCLUDED.taggings_count;
+        DO UPDATE SET taggings_count = table_posts_tags_cloud.taggings_count + EXCLUDED.taggings_count;
         RETURN NULL;
       END $$;
 
-    CREATE OR REPLACE FUNCTION metka_upd_tagged_table_posts() RETURNS trigger LANGUAGE plpgsql AS $$
+    CREATE OR REPLACE FUNCTION metka_upd_table_posts_tags_cloud() RETURNS trigger LANGUAGE plpgsql AS $$
       BEGIN
         WITH deltas AS (
           SELECT tag_name, SUM(d) AS delta
@@ -151,19 +151,19 @@ class CreateTaggedTablePostsTable < ActiveRecord::Migration[5.0]
           GROUP BY tag_name
           HAVING SUM(d) <> 0
         )
-        INSERT INTO tagged_table_posts (tag_name, taggings_count)
+        INSERT INTO table_posts_tags_cloud (tag_name, taggings_count)
         SELECT tag_name, delta FROM deltas
         ON CONFLICT (tag_name)
-        DO UPDATE SET taggings_count = tagged_table_posts.taggings_count + EXCLUDED.taggings_count;
+        DO UPDATE SET taggings_count = table_posts_tags_cloud.taggings_count + EXCLUDED.taggings_count;
 
-        DELETE FROM tagged_table_posts WHERE taggings_count <= 0;
+        DELETE FROM table_posts_tags_cloud WHERE taggings_count <= 0;
         RETURN NULL;
       END $$;
 
-    CREATE OR REPLACE FUNCTION metka_del_tagged_table_posts() RETURNS trigger LANGUAGE plpgsql AS $$
+    CREATE OR REPLACE FUNCTION metka_del_table_posts_tags_cloud() RETURNS trigger LANGUAGE plpgsql AS $$
       BEGIN
-        UPDATE tagged_table_posts
-        SET taggings_count = tagged_table_posts.taggings_count - removed.taggings_count
+        UPDATE table_posts_tags_cloud
+        SET taggings_count = table_posts_tags_cloud.taggings_count - removed.taggings_count
         FROM (
           SELECT tag_name, COUNT(*) AS taggings_count
           FROM (
@@ -172,9 +172,9 @@ class CreateTaggedTablePostsTable < ActiveRecord::Migration[5.0]
           ) subquery
           GROUP BY tag_name
         ) removed
-        WHERE tagged_table_posts.tag_name = removed.tag_name;
+        WHERE table_posts_tags_cloud.tag_name = removed.tag_name;
 
-        DELETE FROM tagged_table_posts WHERE taggings_count <= 0;
+        DELETE FROM table_posts_tags_cloud WHERE taggings_count <= 0;
         RETURN NULL;
       END $$;
 
@@ -186,19 +186,19 @@ class CreateTaggedTablePostsTable < ActiveRecord::Migration[5.0]
     AFTER INSERT ON table_posts
     REFERENCING NEW TABLE AS new_rows
     FOR EACH STATEMENT
-    EXECUTE PROCEDURE metka_ins_tagged_table_posts();
+    EXECUTE PROCEDURE metka_ins_table_posts_tags_cloud();
 
     CREATE TRIGGER metka_upd_on_table_posts_tags
     AFTER UPDATE ON table_posts
     REFERENCING OLD TABLE AS old_rows NEW TABLE AS new_rows
     FOR EACH STATEMENT
-    EXECUTE PROCEDURE metka_upd_tagged_table_posts();
+    EXECUTE PROCEDURE metka_upd_table_posts_tags_cloud();
 
     CREATE TRIGGER metka_del_on_table_posts_tags
     AFTER DELETE ON table_posts
     REFERENCING OLD TABLE AS old_rows
     FOR EACH STATEMENT
-    EXECUTE PROCEDURE metka_del_tagged_table_posts();
+    EXECUTE PROCEDURE metka_del_table_posts_tags_cloud();
     SQL
   end
 
@@ -207,10 +207,10 @@ class CreateTaggedTablePostsTable < ActiveRecord::Migration[5.0]
       DROP TRIGGER IF EXISTS metka_ins_on_table_posts_tags ON table_posts;
       DROP TRIGGER IF EXISTS metka_upd_on_table_posts_tags ON table_posts;
       DROP TRIGGER IF EXISTS metka_del_on_table_posts_tags ON table_posts;
-      DROP FUNCTION IF EXISTS metka_ins_tagged_table_posts;
-      DROP FUNCTION IF EXISTS metka_upd_tagged_table_posts;
-      DROP FUNCTION IF EXISTS metka_del_tagged_table_posts;
-      DROP TABLE IF EXISTS tagged_table_posts;
+      DROP FUNCTION IF EXISTS metka_ins_table_posts_tags_cloud;
+      DROP FUNCTION IF EXISTS metka_upd_table_posts_tags_cloud;
+      DROP FUNCTION IF EXISTS metka_del_table_posts_tags_cloud;
+      DROP TABLE IF EXISTS table_posts_tags_cloud;
     SQL
   end
 end
