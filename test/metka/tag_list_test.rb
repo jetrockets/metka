@@ -3,6 +3,10 @@
 require "test_helper"
 
 class MetkaTagListTest < ActiveSupport::TestCase
+  teardown do
+    Metka.config.delimiter = ","
+  end
+
   test "renders itself as the tag string it was parsed from" do
     assert_equal "ruby, rails", Metka::TagList.new([ "ruby", "rails" ]).to_s
   end
@@ -19,8 +23,23 @@ class MetkaTagListTest < ActiveSupport::TestCase
     assert_equal "ruby, rails", Metka::TagList.new([ "ruby", "rails", "ruby" ]).to_s
   end
 
-  test "round-trips a parsed tag string" do
-    assert_equal "ruby, rails", Metka::GenericParser.instance.call("ruby, rails").to_s
+  test "renders with the configured delimiter" do
+    Metka.config.delimiter = "|"
+
+    assert_equal "ruby| rails", Metka::TagList.new([ "ruby", "rails" ]).to_s
+  end
+
+  test "round-trips through the parser under the default delimiter" do
+    parsed = Metka::GenericParser.instance.call("ruby, rails")
+
+    assert_equal [ "ruby", "rails" ], Metka::GenericParser.instance.call(parsed.to_s).to_a
+  end
+
+  test "round-trips through the parser under a custom delimiter" do
+    Metka.config.delimiter = "|"
+    parsed = Metka::GenericParser.instance.call("ruby| rails")
+
+    assert_equal [ "ruby", "rails" ], Metka::GenericParser.instance.call(parsed.to_s).to_a
   end
 
   test "is what the parser and the list accessors return" do
