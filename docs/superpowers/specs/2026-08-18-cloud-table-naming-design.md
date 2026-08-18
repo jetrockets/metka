@@ -70,14 +70,22 @@ the source table and columns, not the summary table, so they are untouched.
 ### Docs and fixtures (model the new convention)
 
 - `test/generators/strategies/table_generator_test.rb`: expected table and
-  migration names.
+  migration names, including the trigger-function name assertions
+  (`metka_ins_tagged_notes` → `metka_ins_notes_tags_cloud`); trigger-name
+  assertions (`metka_ins_on_notes_...`) stay as they are.
 - `README.md` table-strategy section: `tagged_notes` → `notes_tags_cloud`,
   `TaggedNote` → `NotesTagsCloud`, and the derived-name explanation.
 - Dummy app: `test/dummy/db/migrate/11_create_tagged_table_posts_table.rb`
   and the `TaggedTablePost` model/test rename to the new convention
   (summary table `table_posts_tags_cloud`).
-- `benchmark/benchmark.rb` (and its README where it names the table): table
-  strategy table renamed to match.
+- `benchmark/benchmark.rb`: table strategy table (`tagged_metka_table_posts`)
+  renamed to match. `benchmark/README.md` never names the table literally, so
+  it needs no change.
+
+Pluralization note: Rails infers `notes_tags_clouds` (plural) from a model
+named `NotesTagsCloud`, so the renamed dummy model and the README example
+model must set `self.table_name = "notes_tags_cloud"` explicitly — the old
+`TaggedNote` → `tagged_notes` inference worked by accident of the naming.
 
 ## Compatibility
 
