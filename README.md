@@ -265,7 +265,7 @@ singleton class itself, and `.instance` is called on it at parse time.
 
 ## Tag Cloud Strategies
 
-There are several strategies to get tag statistics. The ActiveRecord Strategy is what you get out of the box with zero setup; for anything beyond occasional clouds on small tables, the [Table Strategy](#table-strategy-with-triggers-recommended) is the recommended default — it reads like a pre-aggregated table and writes within measurement noise of having no strategy at all (see the [benchmark](#benchmark-comparison)).
+There are two strategies to get tag statistics. The ActiveRecord Strategy is what you get out of the box with zero setup; for anything beyond occasional clouds on small tables, the [Table Strategy](#table-strategy-with-triggers-recommended) is the recommended default — it reads like a pre-aggregated table and writes within measurement noise of having no strategy at all (see the [benchmark](#benchmark-comparison)).
 
 ### ActiveRecord Strategy (Zero Setup)
 
@@ -287,113 +287,20 @@ summary_cloud = Book.metka_cloud('authors', 'co_authors')
 `metka_cloud` accepts only columns declared in `Metka::Model`; anything else
 raises `ArgumentError`.
 
-### View Strategy
-
-Tagging data is aggregated in an SQL view. Performance-wise this strategy has no benefits over the ActiveRecord strategy, but if you want to expose tag aggregations as a separate model, this is the easiest way to do it.
-
-```bash
-rails g metka:strategies:view --source-table-name=NAME_OF_TABLE_WITH_TAGS [--source-columns=NAME_OF_COLUMN_1 NAME_OF_COLUMN_2] [--view-name=NAME_OF_RESULTING_VIEW]
-```
-
-The command generates a migration that creates a view aggregating tag data from the listed tagged columns of `NAME_OF_TABLE_WITH_TAGS`.
-
-* If `--source-columns` is omitted, the `tags` column is used by default. When several columns are given, a tag found in more than one of them gets a single row in the view with the sum of its occurrences across all those columns.
-* `--view-name` is optional too. Without it, the view name is derived from the table and column names — you can see it in the generated migration.
-
-Let's take a look at a real example. We have a `notes` table with a `tags` column.
-
-| Column | Type                | Default                           |
-|--------|---------------------|-----------------------------------|
-| id     | integer             | nextval('notes_id_seq'::regclass) |
-| body   | text                |                                   |
-| tags   | character varying[] | '{}'::character varying[]         |
-
-Now let's generate a migration.
-
-```bash
-rails g metka:strategies:view --source-table-name=notes
-```
-
-The result would be:
-
-```ruby
-# frozen_string_literal: true
-
-class CreateTaggedNotesView < ActiveRecord::Migration[5.0]
-  def up
-    execute <<-SQL
-    CREATE OR REPLACE VIEW tagged_notes AS
-      SELECT
-        tag_name,
-        COUNT(*) AS taggings_count
-      FROM (
-        SELECT UNNEST
-          (tags) AS tag_name
-        FROM
-          notes
-      ) subquery
-      GROUP BY
-        tag_name;
-    SQL
-  end
-
-  def down
-    execute <<-SQL
-      DROP VIEW tagged_notes;
-    SQL
-  end
-end
-```
-
-Now let's take a look at the `tagged_notes` view.
-
-| tag_name | taggings_count |
-|----------|----------------|
-| Ruby     | 124056         |
-| React    | 30632          |
-| Rails    | 28696          |
-| Crystal  | 6566           |
-| Elixir   | 3475           |
-
-Now you can create `TaggedNote` model and work with the view like you usually do with Rails models.
-
-### Materialized View Strategy
-
-Tagging data is aggregated in an SQL materialized view that is refreshed by statement-level triggers — once per INSERT, UPDATE or DELETE statement that changes the tagged columns' data, no matter how many rows the statement touches. Apart from the type of view being used, this strategy behaves the same way as the View Strategy above.
-
-```bash
-rails g metka:strategies:materialized_view --source-table-name=NAME_OF_TABLE_WITH_TAGS [--source-columns=NAME_OF_COLUMN_1 NAME_OF_COLUMN_2] [--view-name=NAME_OF_RESULTING_VIEW]
-```
-
-All of the options are the same as for the View Strategy.
-
-The migration template can be seen [here](test/dummy/db/migrate/06_create_tagged_materialized_view_posts_materialized_view.rb "here")
-
-With the same `notes` table and `tags` column, the resulting view has the same two columns
-
-| tag_name | taggings_count |
-|----------|----------------|
-| Ruby     | 124056         |
-| React    | 30632          |
-| Rails    | 28696          |
-| Crystal  | 6566           |
-| Elixir   | 3475           |
-
-And you can also create `TaggedNote` model to work with the view as with a Rails model.
-
 ### Table Strategy with Triggers (Recommended)
 
-Data about taggings will be maintained in a real table with the same two columns as the views above, kept up to date by statement-level triggers. Instead of recomputing the whole aggregation like the Materialized View Strategy does on every refresh, the triggers read the statement's transition tables and apply per-tag deltas, so a write statement only touches the counters of the tags it actually changed. That keeps writes within measurement noise of a table with no triggers at all while reads stay as fast as a plain indexed table — the trade-off is that it is an ordinary table, so anything that writes `NAME_OF_TABLE_WITH_TAGS` without firing the triggers (`TRUNCATE`, restoring from a dump) leaves the counters stale until you reseed the table by hand. The same ownership caveat as for raw column writes applies: keeping the counters honest is your responsibility the moment you go around the write path.
+Data about taggings will be maintained in a real table with two columns, `tag_name` and `taggings_count`, kept up to date by statement-level triggers. Instead of recomputing the whole aggregation on every write, the triggers read the statement's transition tables and apply per-tag deltas, so a write statement only touches the counters of the tags it actually changed. That keeps writes within measurement noise of a table with no triggers at all while reads stay as fast as a plain indexed table — the trade-off is that it is an ordinary table, so anything that writes `NAME_OF_TABLE_WITH_TAGS` without firing the triggers (`TRUNCATE`, restoring from a dump) leaves the counters stale until you reseed the table by hand. The same ownership caveat as for raw column writes applies: keeping the counters honest is your responsibility the moment you go around the write path.
 
 ```bash
-rails g metka:strategies:table --source-table-name=NAME_OF_TABLE_WITH_TAGS --source-columns=NAME_OF_COLUMN_1 NAME_OF_COLUMN_2 --table-name=NAME_OF_RESULTING_TABLE
+rails g metka:strategies:table --source-table-name=NAME_OF_TABLE_WITH_TAGS [--source-columns=NAME_OF_COLUMN_1 NAME_OF_COLUMN_2] [--table-name=NAME_OF_RESULTING_TABLE]
 ```
 
-All of the options for that strategy's generation command are the same as for the View Strategy, except that the resulting table's name is forced with `table-name` instead of `view-name`.
+* If `--source-columns` is omitted, the `tags` column is used by default. When several columns are given, a tag found in more than one of them gets a single row in the summary table with the sum of its occurrences across all those columns.
+* `--table-name` is optional too. Without it, the table name is derived from the source table and column names — you can see it in the generated migration.
 
 The generated migration creates the table, seeds it from the rows already present in `NAME_OF_TABLE_WITH_TAGS`, and installs one statement-level trigger per operation (`INSERT`, `UPDATE`, `DELETE`). The migration template can be seen [here](test/dummy/db/migrate/11_create_tagged_table_posts_table.rb "here")
 
-With the same `notes` table with `tags` column the resulting table would have the same two columns
+For a `notes` table with a `tags` column the resulting `tagged_notes` table would look like this:
 
 | tag_name | taggings_count |
 |----------|----------------|
@@ -502,14 +409,17 @@ Rails 8.1, PostgreSQL 18):
 | Bulk seed 10k posts | 0.21 s | 0.17 s | 0.16 s | 51.6 s | 49.5 s |
 | Storage, tables + indexes | 2.68 MB | 2.68 MB | 2.68 MB | 17.64 MB | 11.87 MB |
 
-The suite also measures what each tag-cloud strategy costs on the same
-dataset — reads via the maintained aggregate against the write overhead of
-keeping it fresh:
+The suite also measures what maintaining a tag-cloud aggregate costs on the
+same dataset — reads via the maintained aggregate against the write overhead
+of keeping it fresh. The trigger-refreshed materialized view is a strategy
+Metka used to ship; it lost to the summary table on every write metric, which
+is why the gem now provides only the table generator, and the row stays here
+as the comparison behind that decision:
 
-| Tag-cloud strategy | Cloud read | Create post | Replace tags | Bulk seed | Storage |
+| Tag-cloud aggregate | Cloud read | Create post | Replace tags | Bulk seed | Storage |
 | --- | --- | --- | --- | --- | --- |
 | none (live aggregation) | 209 | 1,631 | 8,122 | 0.21 s | 2.68 MB |
-| materialized_view | 9,082 | 133 | 173 | 0.24 s | 2.78 MB |
+| materialized view (no longer shipped) | 9,082 | 133 | 173 | 0.24 s | 2.78 MB |
 | table | 9,337 | 1,524 | 7,696 | 0.17 s | 2.75 MB |
 
 Keep in mind that these results alone can't prove one solution better than
