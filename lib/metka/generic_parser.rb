@@ -13,6 +13,7 @@ module Metka
     include Singleton
 
     def initialize
+      @separator = {}
       @single_quote_pattern = {}
       @double_quote_pattern = {}
     end
@@ -25,7 +26,7 @@ module Metka
 
           tag_list.merge extract_quoted!(unquoted, double_quote_pattern)
           tag_list.merge extract_quoted!(unquoted, single_quote_pattern)
-          tag_list.merge unquoted.split(Regexp.new(delimiter)).map(&:strip).reject(&:empty?)
+          tag_list.merge unquoted.split(separator).map(&:strip).reject(&:empty?)
         when Enumerable
           tag_list.merge value.reject(&:empty?)
         end
@@ -46,12 +47,20 @@ module Metka
       Metka.delimiter
     end
 
+    # The delimiter is a literal separator, so it is escaped before going
+    # anywhere near a Regexp. Without this a delimiter of "|" becomes an empty
+    # alternation matching between every character, and "." matches every
+    # character — both silently shredding the input instead of splitting it.
+    def separator
+      @separator[delimiter] ||= Regexp.new(Regexp.escape(delimiter))
+    end
+
     def single_quote_pattern
-      @single_quote_pattern[delimiter] ||= /(?:\A|#{delimiter})\s*'(?<tag>.*?)'\s*(?=#{delimiter}\s*|\z)/
+      @single_quote_pattern[delimiter] ||= /(?:\A|#{Regexp.escape(delimiter)})\s*'(?<tag>.*?)'\s*(?=#{Regexp.escape(delimiter)}\s*|\z)/
     end
 
     def double_quote_pattern
-      @double_quote_pattern[delimiter] ||= /(?:\A|#{delimiter})\s*"(?<tag>.*?)"\s*(?=#{delimiter}\s*|\z)/
+      @double_quote_pattern[delimiter] ||= /(?:\A|#{Regexp.escape(delimiter)})\s*"(?<tag>.*?)"\s*(?=#{Regexp.escape(delimiter)}\s*|\z)/
     end
   end
 end

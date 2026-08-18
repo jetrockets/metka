@@ -47,4 +47,25 @@ class MetkaGenericParserTest < ActiveSupport::TestCase
   test "leaves the unquoted remainder to the delimiter split" do
     assert_equal [ "quoted", "one", "two" ], @parser.call(%q('quoted', one, two)).to_a
   end
+
+  # The delimiter is interpolated into a Regexp. Unescaped, "|" became an empty
+  # alternation matching between every character and "." matched every
+  # character, so both shredded the input instead of splitting it.
+  test "treats a regex metacharacter delimiter as a literal separator" do
+    Metka.config.delimiter = "|"
+
+    assert_equal [ "cool, data", "I have" ], @parser.call("cool, data|I have").to_a
+  end
+
+  test "treats a dot delimiter as a literal separator" do
+    Metka.config.delimiter = "."
+
+    assert_equal %w[rock jazz], @parser.call("rock.jazz").to_a
+  end
+
+  test "still honours quoting under a metacharacter delimiter" do
+    Metka.config.delimiter = "|"
+
+    assert_equal [ "a|b", "c" ], @parser.call(%q("a|b" | c)).to_a
+  end
 end
