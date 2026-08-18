@@ -16,13 +16,26 @@ module Metka
         }
 
       if options[:exclude].present?
-        Arel::Nodes::Not.new(query)
+        exclude(query)
       else
         query
       end
     end
 
     private
+
+    # A NULL tag column makes its comparison NULL, and NOT NULL is NULL, so the
+    # row silently drops out of the WHERE entirely. Coalescing to FALSE first
+    # reads a NULL column as "this row does not carry the tag", which is what
+    # excluding actually asks.
+    #
+    # Only the exclude path is wrapped. Coalescing the columns themselves would
+    # fix it too, but costs the GIN index on every positive query.
+    def exclude(query)
+      Arel::Nodes::Not.new(
+        Arel::Nodes::NamedFunction.new("COALESCE", [ query, Arel.sql("FALSE") ])
+      )
+    end
 
     def join(operator, &block)
       nodes = block.call

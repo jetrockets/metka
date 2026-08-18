@@ -110,6 +110,24 @@ class MetkaModelTest < ActiveSupport::TestCase
     assert_equal posts(:ruby_post), Post.tagged_with("elixir", on: [ "tags" ]).first
   end
 
+  # A NULL tag column used to make the whole NOT(...) evaluate to NULL, so the
+  # row vanished from the result rather than being kept. NULL is what a plain
+  # create leaves behind whenever a model does not tag every column.
+  test ".tagged_with exclude keeps rows whose other tag column is NULL" do
+    assert_nil posts(:php_post).categories, "fixture must keep a NULL tag column"
+
+    assert_includes Post.tagged_with(%w[ruby], exclude: true), posts(:php_post)
+    assert_includes Post.tagged_with(%w[ruby], exclude: true, any: true), posts(:php_post)
+    assert_includes Post.tagged_with(%w[ruby], exclude: true, join_operator: Metka::AND), posts(:php_post)
+  end
+
+  test ".tagged_with exclude keeps a freshly created row that tagged only one column" do
+    untagged_categories = Post.create!(user: users(:david), tags: [ "elm" ])
+
+    assert_nil untagged_categories.categories
+    assert_includes Post.tagged_with(%w[ruby], exclude: true), untagged_categories
+  end
+
   test ".tagged_with returns the whole scope for empty tags" do
     [ "", nil, [] ].each do |tags|
       assert_equal Post.all.sort_by(&:id), Post.tagged_with(tags, any: false).sort_by(&:id)
