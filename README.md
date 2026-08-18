@@ -1,8 +1,10 @@
+<p align="center">
+  <img src="assets/metka-logo.svg" alt="Metka" width="336">
+</p>
+
 [![Gem Version](https://badge.fury.io/rb/metka.svg)](https://badge.fury.io/rb/metka)
 [![Build Status](https://github.com/jetrockets/metka/workflows/Tests/badge.svg?branch=master)](https://github.com/jetrockets/metka/actions)
 [![Open Source Helpers](https://www.codetriage.com/jetrockets/metka/badges/users.svg)](https://www.codetriage.com/jetrockets/metka)
-
-# Metka
 
 A Rails tagging gem built on PostgreSQL array columns. Tags live in an indexed array column right on your table — no join tables, no extra models, no N+1 queries. SQLite is supported too: there the tags live in a JSON column and every query compiles to `json_each` probes (see [Database support](#database-support)).
 
