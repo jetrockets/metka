@@ -63,10 +63,22 @@ module Metka
     end
 
     def define_tag_clouds(base)
+      taggable = @columns
+
+      # metka_cloud is public and its arguments land in raw SQL, so they are
+      # checked against the declared columns rather than interpolated on trust.
       base.define_singleton_method :metka_cloud do |*cloud_columns|
         return [] if cloud_columns.blank?
 
-        prepared_unnest = cloud_columns.map { |column| "#{table_name}.#{column}" }.join(" || ")
+        cloud_columns = cloud_columns.map(&:to_s)
+        unknown = cloud_columns - taggable
+        if unknown.any?
+          raise ArgumentError, "Unknown tag columns #{unknown.inspect}, expected #{taggable.inspect}"
+        end
+
+        prepared_unnest = cloud_columns.map { |column|
+          connection.quote_table_name("#{table_name}.#{column}")
+        }.join(" || ")
         subquery = all.select("UNNEST(#{prepared_unnest}) AS tag_name")
 
         unscoped.from(subquery).group(:tag_name).pluck(:tag_name, Arel.sql("COUNT(*) AS taggings_count"))
