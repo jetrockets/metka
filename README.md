@@ -265,9 +265,9 @@ singleton class itself, and `.instance` is called on it at parse time.
 
 ## Tag Cloud Strategies
 
-There are several strategies to get tag statistics
+There are several strategies to get tag statistics. The ActiveRecord Strategy is what you get out of the box with zero setup; for anything beyond occasional clouds on small tables, the [Table Strategy](#table-strategy-with-triggers-recommended) is the recommended default — it reads like a pre-aggregated table and writes within measurement noise of having no strategy at all (see the [benchmark](#benchmark-comparison)).
 
-### ActiveRecord Strategy (Default)
+### ActiveRecord Strategy (Zero Setup)
 
 Tagging statistics are available via class methods on any model that includes `Metka::Model`. You can build a cloud for a single tagged column or for several at once — in the latter case each tag's count is summed across the given columns. The ActiveRecord strategy is the easiest to use since it requires no additional code, but it is the slowest one on SELECT.
 
@@ -381,9 +381,70 @@ With the same `notes` table and `tags` column, the resulting view has the same t
 
 And you can also create `TaggedNote` model to work with the view as with a Rails model.
 
-### Table Strategy with Triggers
+### Table Strategy with Triggers (Recommended)
 
-TBD
+Data about taggings will be maintained in a real table with the same two columns as the views above, kept up to date by statement-level triggers. Instead of recomputing the whole aggregation like the Materialized View Strategy does on every refresh, the triggers read the statement's transition tables and apply per-tag deltas, so a write statement only touches the counters of the tags it actually changed. That keeps writes within measurement noise of a table with no triggers at all while reads stay as fast as a plain indexed table — the trade-off is that it is an ordinary table, so anything that writes `NAME_OF_TABLE_WITH_TAGS` without firing the triggers (`TRUNCATE`, restoring from a dump) leaves the counters stale until you reseed the table by hand. The same ownership caveat as for raw column writes applies: keeping the counters honest is your responsibility the moment you go around the write path.
+
+```bash
+rails g metka:strategies:table --source-table-name=NAME_OF_TABLE_WITH_TAGS --source-columns=NAME_OF_COLUMN_1 NAME_OF_COLUMN_2 --table-name=NAME_OF_RESULTING_TABLE
+```
+
+All of the options for that strategy's generation command are the same as for the View Strategy, except that the resulting table's name is forced with `table-name` instead of `view-name`.
+
+The generated migration creates the table, seeds it from the rows already present in `NAME_OF_TABLE_WITH_TAGS`, and installs one statement-level trigger per operation (`INSERT`, `UPDATE`, `DELETE`). The migration template can be seen [here](test/dummy/db/migrate/11_create_tagged_table_posts_table.rb "here")
+
+With the same `notes` table with `tags` column the resulting table would have the same two columns
+
+| tag_name | taggings_count |
+|----------|----------------|
+| Ruby     | 124056         |
+| React    | 30632          |
+| Rails    | 28696          |
+| Crystal  | 6566           |
+| Elixir   | 3475           |
+
+And you can also create `TaggedNote` model to work with the table as with a Rails model.
+
+#### Migrating from on-the-fly tag clouds
+
+If you already tag rows with Metka and serve clouds straight off the model — `Song.tag_cloud`, `Book.author_cloud`, `Book.metka_cloud('authors', 'co_authors')` — the generated migration doubles as the migration path. It backfills the summary table from your existing rows and installs the triggers in the same transaction, locking the source table against writes (reads are not blocked) so no statement can slip between the backfill and the triggers; the counts are exact from the moment the migration commits, even under live traffic.
+
+Generate and run the migration, listing every column your cloud aggregates:
+
+```bash
+rails g metka:strategies:table --source-table-name=songs
+```
+
+```bash
+rails db:migrate
+```
+
+For a multi-column cloud like `Book.metka_cloud('authors', 'co_authors')` pass `--source-columns=authors co_authors`, and the seeded counts sum both columns exactly like `metka_cloud` does.
+
+Add a model for the summary table and swap the call sites — `tag_cloud` returns `[tag_name, count]` pairs, and the summary table stores the same data one row per tag:
+
+```ruby
+class TaggedSong < ActiveRecord::Base
+end
+
+Song.tag_cloud                                # before
+TaggedSong.pluck(:tag_name, :taggings_count)  # after
+```
+
+Sorting and limiting that used to happen in Ruby becomes a normal query: `TaggedSong.order(taggings_count: :desc).limit(50)`.
+
+Nothing about how you write tags changes: `tag_list=` and friends keep working, and the triggers keep the counts in step with every `INSERT`, `UPDATE` and `DELETE`, including bulk statements like `insert_all`, `update_all` and `delete_all`. If you ever write around the triggers (`TRUNCATE`, restoring from a dump), rebuild the table the same way the migration seeded it:
+
+```sql
+BEGIN;
+LOCK TABLE songs IN SHARE ROW EXCLUSIVE MODE;
+DELETE FROM tagged_songs;
+INSERT INTO tagged_songs (tag_name, taggings_count)
+  SELECT tag_name, COUNT(*)
+  FROM (SELECT UNNEST(tags) AS tag_name FROM songs) subquery
+  GROUP BY tag_name;
+COMMIT;
+```
 
 ## Inspired by
 
@@ -433,13 +494,23 @@ Rails 8.1, PostgreSQL 18):
 
 | Operation | metka | taggable-array | tag_columns | acts-as-taggable-on | gutentag |
 | --- | --- | --- | --- | --- | --- |
-| Query: ALL of 2 tags, load records | 6,183 | 6,865 | 977 | 2,401 | 1,365 |
-| Query: ANY of 2 tags, count | 4,730 | 4,795 | 676 | 794 | 974 |
-| Tag cloud over all posts | 213 | 198 | 194 | 128 | 158 |
-| Create post with 5 tags | 1,604 | 1,634 | 1,659 | 203 | 197 |
-| Replace tags of existing post | 8,223 | 7,754 | 7,342 | 143 | 177 |
-| Bulk seed 10k posts | 0.21 s | 0.21 s | 0.21 s | 53.5 s | 49.8 s |
-| Storage, tables + indexes | 2.68 MB | 2.68 MB | 2.68 MB | 17.98 MB | 12.03 MB |
+| Query: ALL of 2 tags, load records | 6,393 | 6,606 | 970 | 2,380 | 1,292 |
+| Query: ANY of 2 tags, count | 4,629 | 4,625 | 679 | 791 | 1,026 |
+| Tag cloud over all posts | 209 | 197 | 194 | 126 | 158 |
+| Create post with 5 tags | 1,631 | 1,636 | 1,579 | 196 | 183 |
+| Replace tags of existing post | 8,122 | 7,480 | 7,158 | 186 | 176 |
+| Bulk seed 10k posts | 0.21 s | 0.17 s | 0.16 s | 51.6 s | 49.5 s |
+| Storage, tables + indexes | 2.68 MB | 2.68 MB | 2.68 MB | 17.64 MB | 11.87 MB |
+
+The suite also measures what each tag-cloud strategy costs on the same
+dataset — reads via the maintained aggregate against the write overhead of
+keeping it fresh:
+
+| Tag-cloud strategy | Cloud read | Create post | Replace tags | Bulk seed | Storage |
+| --- | --- | --- | --- | --- | --- |
+| none (live aggregation) | 209 | 1,631 | 8,122 | 0.21 s | 2.68 MB |
+| materialized_view | 9,082 | 133 | 173 | 0.24 s | 2.78 MB |
+| table | 9,337 | 1,524 | 7,696 | 0.17 s | 2.75 MB |
 
 Keep in mind that these results alone can't prove one solution better than
 the others — each gem has unique features. The join-table gems maintain a

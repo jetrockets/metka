@@ -2,65 +2,69 @@ Seeding 10000 posts per gem, 5 tags each, vocabulary of 100 tags
 
 Bulk seed wall time (10000 posts):
   metka                            0.21 s
-  acts-as-taggable-array-on        0.21 s
-  tag_columns                      0.21 s
-  acts-as-taggable-on             53.51 s
-  gutentag                        49.82 s
+  metka (materialized_view)        0.24 s
+  metka (table)                    0.17 s
+  acts-as-taggable-array-on        0.17 s
+  tag_columns                      0.16 s
+  acts-as-taggable-on             51.57 s
+  gutentag                        49.46 s
 
 Storage (tables + indexes) for 10000 posts:
   metka                            2.68 MB
+  metka (materialized_view)        2.78 MB
+  metka (table)                    2.75 MB
   acts-as-taggable-array-on        2.68 MB
   tag_columns                      2.68 MB
-  acts-as-taggable-on             17.98 MB
-  gutentag                        12.03 MB
+  acts-as-taggable-on             17.64 MB
+  gutentag                        11.87 MB
 
 ========================================================================
 QUERY: tagged with ALL of 2 tags -> load records (~25 rows)
 ========================================================================
 ruby 4.0.6 (2026-07-14 revision 03b6d3f889) +PRISM [x86_64-linux]
 Warming up --------------------------------------
-                    metka   654.000 i/100ms
-acts-as-taggable-array-on   680.000 i/100ms
-              tag_columns    95.000 i/100ms
-      acts-as-taggable-on   247.000 i/100ms
-                 gutentag   148.000 i/100ms
+                    metka   575.000 i/100ms
+acts-as-taggable-array-on   703.000 i/100ms
+              tag_columns    99.000 i/100ms
+      acts-as-taggable-on   234.000 i/100ms
+                 gutentag   130.000 i/100ms
 Calculating -------------------------------------
-                    metka      6.183k (±11.0%) i/s  (161.73 μs/i) -     31.392k in   5.076885s
-acts-as-taggable-array-on      6.865k (±12.5%) i/s  (145.67 μs/i) -     34.680k in   5.051697s
-              tag_columns    977.017 (± 3.2%) i/s    (1.02 ms/i) -      4.940k in   5.056205s
-      acts-as-taggable-on      2.401k (± 6.4%) i/s  (416.49 μs/i) -     12.103k in   5.040807s
-                 gutentag      1.365k (± 8.6%) i/s  (732.36 μs/i) -      6.956k in   5.094294s
+                    metka      6.393k (±11.5%) i/s  (156.42 μs/i) -     32.200k in   5.036572s
+acts-as-taggable-array-on      6.606k (±10.2%) i/s  (151.37 μs/i) -     33.041k in   5.001295s
+              tag_columns    969.748 (± 3.6%) i/s    (1.03 ms/i) -      4.851k in   5.002330s
+      acts-as-taggable-on      2.380k (± 6.7%) i/s  (420.17 μs/i) -     11.934k in   5.014338s
+                 gutentag      1.292k (± 8.6%) i/s  (773.94 μs/i) -      6.500k in   5.030627s
 
 Comparison:
-acts-as-taggable-array-on:     6865.0 i/s
-                    metka:     6183.3 i/s - same-ish: difference falls within error
-      acts-as-taggable-on:     2401.0 i/s - 2.86x  slower
-                 gutentag:     1365.4 i/s - 5.03x  slower
-              tag_columns:      977.0 i/s - 7.03x  slower
+acts-as-taggable-array-on:     6606.5 i/s
+                    metka:     6393.2 i/s - same-ish: difference falls within error
+      acts-as-taggable-on:     2380.0 i/s - 2.78x  slower
+                 gutentag:     1292.1 i/s - 5.11x  slower
+              tag_columns:      969.7 i/s - 6.81x  slower
 
 ========================================================================
 QUERY: tagged with ANY of 2 tags -> count
 ========================================================================
 ruby 4.0.6 (2026-07-14 revision 03b6d3f889) +PRISM [x86_64-linux]
 Warming up --------------------------------------
-                    metka   447.000 i/100ms
-acts-as-taggable-array-on   421.000 i/100ms
-              tag_columns    68.000 i/100ms
-      acts-as-taggable-on    82.000 i/100ms
-                 gutentag    96.000 i/100ms
+                    metka   437.000 i/100ms
+acts-as-taggable-array-on   544.000 i/100ms
+              tag_columns    66.000 i/100ms
+      acts-as-taggable-on    77.000 i/100ms
+                 gutentag   108.000 i/100ms
 Calculating -------------------------------------
-                    metka      4.730k (±10.7%) i/s  (211.40 μs/i) -     24.138k in   5.102887s
-acts-as-taggable-array-on      4.795k (±11.1%) i/s  (208.54 μs/i) -     23.997k in   5.004351s
-              tag_columns    676.230 (± 3.7%) i/s    (1.48 ms/i) -      3.400k in   5.027875s
-      acts-as-taggable-on    793.527 (± 4.2%) i/s    (1.26 ms/i) -      4.018k in   5.063468s
-                 gutentag    974.488 (± 5.8%) i/s    (1.03 ms/i) -      4.896k in   5.024177s
+                    metka      4.629k (±10.5%) i/s  (216.01 μs/i) -     23.598k in   5.097441s
+acts-as-taggable-array-on      4.625k (± 9.3%) i/s  (216.20 μs/i) -     23.392k in   5.057411s
+              tag_columns    678.569 (± 2.5%) i/s    (1.47 ms/i) -      3.432k in   5.057704s
+      acts-as-taggable-on    791.216 (± 4.8%) i/s    (1.26 ms/i) -      4.004k in   5.060563s
+                 gutentag      1.026k (± 8.2%) i/s  (974.70 μs/i) -      5.184k in   5.052824s
 
 Comparison:
-acts-as-taggable-array-on:     4795.2 i/s
-                    metka:     4730.3 i/s - same-ish: difference falls within error
-                 gutentag:      974.5 i/s - 4.92x  slower
-      acts-as-taggable-on:      793.5 i/s - 6.04x  slower
-              tag_columns:      676.2 i/s - 7.09x  slower
+                    metka:     4629.4 i/s
+acts-as-taggable-array-on:     4625.3 i/s - same-ish: difference falls within error
+                 gutentag:     1026.0 i/s - 4.51x  slower
+      acts-as-taggable-on:      791.2 i/s - 5.85x  slower
+              tag_columns:      678.6 i/s - 6.82x  slower
 
 ========================================================================
 TAG CLOUD: tag -> usage count across all 10000 posts
@@ -68,68 +72,91 @@ TAG CLOUD: tag -> usage count across all 10000 posts
 ruby 4.0.6 (2026-07-14 revision 03b6d3f889) +PRISM [x86_64-linux]
 Warming up --------------------------------------
                     metka    21.000 i/100ms
+metka (materialized_view)   902.000 i/100ms
+            metka (table)   906.000 i/100ms
 acts-as-taggable-array-on    20.000 i/100ms
               tag_columns    19.000 i/100ms
-      acts-as-taggable-on    12.000 i/100ms
-                 gutentag    16.000 i/100ms
+      acts-as-taggable-on    11.000 i/100ms
+                 gutentag    15.000 i/100ms
 Calculating -------------------------------------
-                    metka    213.074 (± 2.3%) i/s    (4.69 ms/i) -      1.071k in   5.026426s
-acts-as-taggable-array-on    198.129 (± 3.0%) i/s    (5.05 ms/i) -      1.000k in   5.047221s
-              tag_columns    193.691 (± 3.6%) i/s    (5.16 ms/i) -    969.000 in   5.002808s
-      acts-as-taggable-on    127.568 (± 3.1%) i/s    (7.84 ms/i) -    648.000 in   5.079662s
-                 gutentag    158.095 (± 3.2%) i/s    (6.33 ms/i) -    800.000 in   5.060243s
+                    metka    208.919 (± 3.4%) i/s    (4.79 ms/i) -      1.050k in   5.025882s
+metka (materialized_view)      9.082k (± 6.1%) i/s  (110.10 μs/i) -     46.002k in   5.065005s
+            metka (table)      9.337k (± 5.7%) i/s  (107.10 μs/i) -     47.112k in   5.045815s
+acts-as-taggable-array-on    197.000 (± 2.5%) i/s    (5.08 ms/i) -      1.000k in   5.076138s
+              tag_columns    193.611 (± 2.1%) i/s    (5.17 ms/i) -    969.000 in   5.004886s
+      acts-as-taggable-on    126.455 (± 3.2%) i/s    (7.91 ms/i) -    638.000 in   5.045259s
+                 gutentag    158.473 (± 3.2%) i/s    (6.31 ms/i) -    795.000 in   5.016643s
 
 Comparison:
-                    metka:      213.1 i/s
-acts-as-taggable-array-on:      198.1 i/s - 1.08x  slower
-              tag_columns:      193.7 i/s - 1.10x  slower
-                 gutentag:      158.1 i/s - 1.35x  slower
-      acts-as-taggable-on:      127.6 i/s - 1.67x  slower
+            metka (table):     9336.8 i/s
+metka (materialized_view):     9082.3 i/s - same-ish: difference falls within error
+                    metka:      208.9 i/s - 44.69x  slower
+acts-as-taggable-array-on:      197.0 i/s - 47.40x  slower
+              tag_columns:      193.6 i/s - 48.22x  slower
+                 gutentag:      158.5 i/s - 58.92x  slower
+      acts-as-taggable-on:      126.5 i/s - 73.84x  slower
 
 ========================================================================
 WRITE: create one post with 5 tags
 ========================================================================
 ruby 4.0.6 (2026-07-14 revision 03b6d3f889) +PRISM [x86_64-linux]
 Warming up --------------------------------------
-                    metka   168.000 i/100ms
-acts-as-taggable-array-on   160.000 i/100ms
-              tag_columns   141.000 i/100ms
-      acts-as-taggable-on    18.000 i/100ms
-                 gutentag    19.000 i/100ms
+                    metka   183.000 i/100ms
+metka (materialized_view)    13.000 i/100ms
+            metka (table)   141.000 i/100ms
+acts-as-taggable-array-on   171.000 i/100ms
+              tag_columns   158.000 i/100ms
+      acts-as-taggable-on    20.000 i/100ms
+                 gutentag    20.000 i/100ms
 Calculating -------------------------------------
-                    metka      1.604k (± 5.9%) i/s  (623.42 μs/i) -      8.064k in   5.027289s
-acts-as-taggable-array-on      1.634k (± 6.3%) i/s  (612.14 μs/i) -      8.320k in   5.093027s
-              tag_columns      1.659k (± 6.6%) i/s  (602.71 μs/i) -      8.319k in   5.013907s
-      acts-as-taggable-on    203.407 (± 9.3%) i/s    (4.92 ms/i) -      1.026k in   5.044064s
-                 gutentag    197.342 (± 9.6%) i/s    (5.07 ms/i) -      1.007k in   5.102805s
+                    metka      1.631k (± 6.1%) i/s  (613.16 μs/i) -      8.235k in   5.049341s
+metka (materialized_view)    133.473 (± 3.7%) i/s    (7.49 ms/i) -    676.000 in   5.064704s
+            metka (table)      1.524k (± 6.9%) i/s  (656.30 μs/i) -      7.755k in   5.089594s
+acts-as-taggable-array-on      1.636k (± 6.2%) i/s  (611.22 μs/i) -      8.208k in   5.016908s
+              tag_columns      1.579k (± 5.5%) i/s  (633.41 μs/i) -      7.900k in   5.003932s
+      acts-as-taggable-on    196.146 (± 9.7%) i/s    (5.10 ms/i) -      1.000k in   5.098238s
+                 gutentag    182.829 (±11.5%) i/s    (5.47 ms/i) -    920.000 in   5.032032s
 
 Comparison:
-              tag_columns:     1659.2 i/s
-acts-as-taggable-array-on:     1633.6 i/s - same-ish: difference falls within error
-                    metka:     1604.0 i/s - same-ish: difference falls within error
-      acts-as-taggable-on:      203.4 i/s - 8.16x  slower
-                 gutentag:      197.3 i/s - 8.41x  slower
+acts-as-taggable-array-on:     1636.1 i/s
+                    metka:     1630.9 i/s - same-ish: difference falls within error
+              tag_columns:     1578.8 i/s - same-ish: difference falls within error
+            metka (table):     1523.7 i/s - same-ish: difference falls within error
+      acts-as-taggable-on:      196.1 i/s - 8.34x  slower
+                 gutentag:      182.8 i/s - 8.95x  slower
+metka (materialized_view):      133.5 i/s - 12.26x  slower
 
 ========================================================================
 WRITE: replace the tag list of an existing post
 ========================================================================
 ruby 4.0.6 (2026-07-14 revision 03b6d3f889) +PRISM [x86_64-linux]
 Warming up --------------------------------------
-                    metka   154.000 i/100ms
+                    metka   149.000 i/100ms
+metka (materialized_view)    12.000 i/100ms
+            metka (table)   126.000 i/100ms
 acts-as-taggable-array-on   154.000 i/100ms
-              tag_columns   131.000 i/100ms
-      acts-as-taggable-on    13.000 i/100ms
-                 gutentag    12.000 i/100ms
+              tag_columns   155.000 i/100ms
+      acts-as-taggable-on    14.000 i/100ms
+                 gutentag    13.000 i/100ms
 Calculating -------------------------------------
-                    metka      8.223k (± 9.8%) i/s  (121.60 μs/i) -     41.118k in   5.000120s
-acts-as-taggable-array-on      7.754k (±10.0%) i/s  (128.96 μs/i) -     38.808k in   5.004756s
-              tag_columns      7.342k (± 9.6%) i/s  (136.20 μs/i) -     36.811k in   5.013724s
-      acts-as-taggable-on    143.447 (± 9.8%) i/s    (6.97 ms/i) -    728.000 in   5.075029s
-                 gutentag    176.751 (± Inf%) i/s    (5.66 ms/i) -    888.000 in   5.024007s
+                    metka      8.122k (±10.3%) i/s  (123.13 μs/i) -     40.677k in   5.008543s
+metka (materialized_view)    173.316 (± Inf%) i/s    (5.77 ms/i) -    876.000 in   5.054362s
+            metka (table)      7.696k (±13.6%) i/s  (129.93 μs/i) -     38.556k in   5.009564s
+acts-as-taggable-array-on      7.480k (±12.4%) i/s  (133.69 μs/i) -     37.422k in   5.002821s
+              tag_columns      7.158k (±12.4%) i/s  (139.71 μs/i) -     35.805k in   5.002423s
+      acts-as-taggable-on    185.732 (± Inf%) i/s    (5.38 ms/i) -    938.000 in   5.050285s
+                 gutentag    175.628 (± Inf%) i/s    (5.69 ms/i) -    884.000 in   5.033375s
 
 Comparison:
-                    metka:     8223.4 i/s
-acts-as-taggable-array-on:     7754.2 i/s - same-ish: difference falls within error
-              tag_columns:     7342.0 i/s - same-ish: difference falls within error
-                 gutentag:      176.8 i/s - 46.53x  slower
-      acts-as-taggable-on:      143.4 i/s - 57.33x  slower
+                    metka:     8121.5 i/s
+            metka (table):     7696.5 i/s - same-ish: difference falls within error
+acts-as-taggable-array-on:     7480.2 i/s - same-ish: difference falls within error
+              tag_columns:     7157.5 i/s - same-ish: difference falls within error
+      acts-as-taggable-on:      185.7 i/s - 43.73x  slower
+                 gutentag:      175.6 i/s - 46.24x  slower
+metka (materialized_view):      173.3 i/s - 46.86x  slower
+
+
+Strategy integrity after all suites (0 = aggregate matches a live UNNEST..GROUP BY):
+  materialized_view mismatching tags: 0
+  table mismatching tags:             0
