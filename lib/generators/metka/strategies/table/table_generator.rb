@@ -62,8 +62,7 @@ module Metka
           def table_name
             return options[:table_name] if options[:table_name]
 
-            columns_sequence = (source_columns == DEFAULT_SOURCE_COLUMNS) ? nil : "_with_#{source_columns_names}"
-            "tagged#{columns_sequence}_#{source_table_name}"
+            "#{source_table_name}_#{source_columns_names}_cloud"
           end
 
           def migration_name
