@@ -158,6 +158,23 @@ class MetkaModelTest < ActiveSupport::TestCase
     assert_equal({ any: true }, options, "must not mutate the caller's hash")
   end
 
+  # The tagged column itself is a plain ActiveRecord attribute, and writing it
+  # directly is deliberately not intercepted (issue #36): Metka owns the *_list
+  # API, the schema owns the column. Only tag_list= goes through the parser.
+  test "raw column assignment bypasses the parser by design" do
+    post = Post.create!(user: users(:david), tags: [ "github", "github" ])
+
+    assert_equal [ "github", "github" ], post.reload.tags
+  end
+
+  test "tag_list= de-duplicates through the parser" do
+    post = Post.new(user: users(:david))
+    post.tag_list = [ "github", "github" ]
+    post.save!
+
+    assert_equal [ "github" ], post.reload.tags
+  end
+
   # Custom parser — User is tagged through CustomParser, which splits on "|"
 
   TAGS = "developer | senior"

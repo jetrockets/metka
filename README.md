@@ -61,6 +61,31 @@ end
 @song.save
 ```
 
+### Writing tags: `tag_list=` vs the raw column
+
+`tag_list=` (and its per-column siblings like `genre_list=`) is the Metka write
+path. Input goes through the configured parser, which splits on the delimiter,
+honors quoting, strips blanks, and de-duplicates:
+
+```ruby
+@song.tag_list = 'chill, chill, top'
+@song.tags
+#=> ["chill", "top"]
+```
+
+Assigning the array column directly is a plain ActiveRecord attribute write.
+Metka does not see it, so nothing is parsed or de-duplicated — and duplicates
+stored this way are counted twice by tag clouds, which aggregate the raw array
+elements:
+
+```ruby
+@song.tags = [ 'chill', 'chill' ]   # stored exactly as given
+```
+
+This is by design: the column belongs to your schema, and Metka only owns the
+`*_list` API. If you write the column directly, normalizing the array is your
+responsibility.
+
 ## Find tagged objects
 
 ### .with_all_#{column_name}
