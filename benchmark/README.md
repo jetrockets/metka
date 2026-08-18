@@ -42,13 +42,13 @@ bare table and apply to either setup.
 
 | Operation | metka | taggable-array | tag_columns | acts-as-taggable-on | gutentag |
 | --- | --- | --- | --- | --- | --- |
-| Query: ALL of 2 tags, load records | 6,003 i/s | 6,725 i/s | 986 (6.8x slower) | 2,292 (2.9x slower) | 1,299 (5.2x slower) |
-| Query: ANY of 2 tags, count | 4,575 i/s | 4,479 i/s | 678 (6.7x slower) | 788 (5.8x slower) | 1,027 (4.5x slower) |
-| Tag cloud (counts over 10k posts) | 9,025 i/s | 204 (44x slower) | 198 (46x slower) | 127 (71x slower) | 161 (56x slower) |
-| Create post with 5 tags | 1,495 i/s | 1,634 i/s | 1,599 i/s | 204 (8.0x slower) | 196 (8.3x slower) |
-| Replace tags of existing post | 8,131 i/s | 7,766 i/s | 7,396 i/s | 190 (43x slower) | 183 (44x slower) |
-| Bulk seed 10k posts (`insert_all` where possible) | 0.17 s | 0.17 s | 0.16 s | 45.6 s | 50.2 s |
-| Storage, tables + indexes | 2.75 MB | 2.68 MB | 2.68 MB | 18.17 MB | 10.97 MB |
+| Query: ALL of 2 tags, load records | 5,860 i/s | 6,201 i/s | 955 (6.5x slower) | 2,164 (2.9x slower) | 1,171 (5.3x slower) |
+| Query: ANY of 2 tags, count | 4,208 i/s | 4,408 i/s | 683 (6.5x slower) | 771 (5.7x slower) | 939 (4.7x slower) |
+| Tag cloud (counts over 10k posts) | 8,750 i/s | 197 (44x slower) | 197 (44x slower) | 125 (70x slower) | 160 (55x slower) |
+| Create post with 5 tags | 1,495 i/s | 1,615 i/s | 1,590 i/s | 205 (7.9x slower) | 192 (8.4x slower) |
+| Replace tags of existing post | 8,051 i/s | 7,781 i/s | 7,219 i/s | 179 (45x slower) | 122 (66x slower) |
+| Bulk seed 10k posts (`insert_all` where possible) | 0.21 s | 0.19 s | 0.17 s | 46.9 s | 52.7 s |
+| Storage, tables + indexes | 2.75 MB | 2.68 MB | 2.68 MB | 18.07 MB | 11.21 MB |
 
 On queries and writes, differences between metka and
 acts-as-taggable-array-on are within benchmark noise; on the tag cloud, the
@@ -61,10 +61,10 @@ reference):
 
 | Operation | metka (table) | metka (bare) |
 | --- | --- | --- |
-| Tag cloud (counts over 10k posts) | 9,025 i/s | 212 (43x slower) |
-| Create post with 5 tags | 1,495 i/s | 1,619 i/s |
-| Replace tags of existing post | 8,131 i/s | 8,293 i/s |
-| Bulk seed 10k posts | 0.17 s | 0.21 s |
+| Tag cloud (counts over 10k posts) | 8,750 i/s | 211 (41x slower) |
+| Create post with 5 tags | 1,495 i/s | 1,601 i/s |
+| Replace tags of existing post | 8,051 i/s | 8,304 i/s |
+| Bulk seed 10k posts | 0.21 s | 0.22 s |
 | Storage, tables + indexes | 2.75 MB | 2.68 MB |
 
 After all suites (tens of thousands of trigger firings), the maintained
@@ -81,14 +81,14 @@ script verifies this at the end of every run.
   `IN (SELECT ... GROUP BY ... HAVING COUNT(*))` subquery. Writes are the
   starkest difference: replacing a tag list is a one-column `UPDATE` for the
   array gems, while the join-table gems load current taggings, diff them, and
-  insert/delete rows plus counter-cache updates — hence the ~44x gap.
+  insert/delete rows plus counter-cache updates — hence the 45–66x gap.
 - **tag_columns defeats its own index.** Its scopes wrap the column in
   `CAST(tags AS text[])`, and the planner will not use the GIN index on the
   column under a cast: `EXPLAIN` shows metka using a Bitmap Index Scan and
   tag_columns a Seq Scan for the same logical query. Writes (no cast
   involved) match the other array gems.
 - **What the table strategy costs.** It serves tag-cloud reads from a small
-  pre-aggregated relation (~43x faster than aggregating live) while keeping
+  pre-aggregated relation (~41x faster than aggregating live) while keeping
   every write within benchmark noise of bare metka: its statement-level
   triggers read the statement's transition tables and upsert only the touched
   tags' counters, so a write pays for the tags it changed rather than for a
@@ -99,7 +99,7 @@ script verifies this at the end of every run.
   rename in one place, tag metadata, taggings_count caches, cross-model tags,
   taggers/contexts (ATO). Metka's answer for tag-count aggregates is the
   `metka:strategies:table` generator. If those features are unused,
-  the join tables are pure overhead — 4.4–6.6x on disk here.
+  the join tables are pure overhead — 4.1–6.6x on disk here.
 
 Caveats: single machine, Dockerized PostgreSQL with default settings, one
 run per suite via benchmark-ips (2 s warmup / 5 s measure), 10k rows fits in
