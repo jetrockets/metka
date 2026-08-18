@@ -2,17 +2,18 @@
 
 Compares Metka against four other ActiveRecord tagging gems:
 
-| Gem | Version | Storage model |
-| --- | --- | --- |
-| [metka](https://github.com/jetrockets/metka) | this checkout | PostgreSQL array column + GIN index |
-| [acts-as-taggable-array-on](https://github.com/tmiyamon/acts-as-taggable-array-on) | 0.7.0 | PostgreSQL array column + GIN index |
-| [tag_columns](https://github.com/hopsoft/tag_columns) | 0.1.10 | PostgreSQL array column + GIN index |
-| [acts-as-taggable-on](https://github.com/mbleigh/acts-as-taggable-on) | 13.0.0 | normalized `tags` + polymorphic `taggings` join tables |
-| [gutentag](https://github.com/pat/gutentag) | 3.0.1 | normalized `gutentag_tags` + `gutentag_taggings` join tables |
+| Gem | Version | Storage model | Runs on |
+| --- | --- | --- | --- |
+| [metka](https://github.com/jetrockets/metka) | this checkout | PostgreSQL array column + GIN index; JSON column on SQLite | PostgreSQL, SQLite |
+| [acts-as-taggable-array-on](https://github.com/tmiyamon/acts-as-taggable-array-on) | 0.7.0 | PostgreSQL array column + GIN index | PostgreSQL |
+| [tag_columns](https://github.com/hopsoft/tag_columns) | 0.1.10 | PostgreSQL array column + GIN index | PostgreSQL |
+| [acts-as-taggable-on](https://github.com/mbleigh/acts-as-taggable-on) | 13.0.0 | normalized `tags` + polymorphic `taggings` join tables | PostgreSQL, SQLite |
+| [gutentag](https://github.com/pat/gutentag) | 3.0.1 | normalized `gutentag_tags` + `gutentag_taggings` join tables | PostgreSQL, SQLite |
 
 ## Running
 
-Needs a scratch PostgreSQL (the run drops and recreates all tables):
+The PostgreSQL run needs a scratch server (the run drops and recreates all
+tables):
 
 ```bash
 docker run -d --name metka-bench-pg \
@@ -22,10 +23,17 @@ bundle install
 bundle exec ruby benchmark.rb          # POSTS=n to change dataset size
 ```
 
+The SQLite run needs nothing external — it benchmarks against a local
+`benchmark.sqlite3` file, recreated on every run:
+
+```bash
+DB=sqlite bundle exec ruby benchmark.rb
+```
+
 Dataset: 10,000 posts per gem, 5 tags per post drawn from a 100-tag
 vocabulary, identical tag assignment across gems (seeded RNG). Join-table
 schemas come from each gem's own bundled migrations. Raw output of the last
-run is in `results.txt`.
+runs is in `results.txt` (PostgreSQL) and `results.sqlite.txt` (SQLite).
 
 Metka is benchmarked twice in the cloud/write suites, once per tag-cloud
 aggregate: `table` (statement-level triggers upsert per-tag deltas into a
@@ -71,6 +79,51 @@ After all suites (tens of thousands of trigger firings), the maintained
 aggregate matched a live `UNNEST .. GROUP BY` aggregation exactly — the
 script verifies this at the end of every run.
 
+## Results on SQLite (Ruby 4.0.6, Rails 8.1, SQLite 3.53, 10k posts)
+
+`DB=sqlite` benchmarks the gems that run on SQLite: metka stores tags in a
+JSON column and queries through `json_each`, acts-as-taggable-on and gutentag
+use their join tables unchanged. acts-as-taggable-array-on and tag_columns
+are PostgreSQL-array-only and are skipped. Same conventions as above — the
+metka column has the table aggregate in place, query rows are measured on the
+bare table:
+
+| Operation | metka | acts-as-taggable-on | gutentag |
+| --- | --- | --- | --- |
+| Query: ALL of 2 tags, load records | 397 i/s (8.3x slower) | 3,294 i/s | 1,965 (1.7x slower) |
+| Query: ANY of 2 tags, count | 378 (5.1x slower) | 426 (4.6x slower) | 1,944 i/s |
+| Tag cloud (counts over 10k posts) | 12,685 i/s | 111 (114x slower) | 86 (148x slower) |
+| Create post with 5 tags | 6,680 i/s | 263 (25x slower) | 281 (24x slower) |
+| Replace tags of existing post | 12,334 i/s | 434 (28x slower) | 760 (16x slower) |
+| Bulk seed 10k posts (`insert_all` where possible) | 0.08 s | 31.1 s | 35.2 s |
+| Storage, tables + indexes | 0.63 MB | 12.53 MB | 7.20 MB |
+
+Bare metka on the same dataset (`table` strategy repeated for reference):
+
+| Operation | metka (table) | metka (bare) |
+| --- | --- | --- |
+| Tag cloud (counts over 10k posts) | 12,685 i/s | 111 (114x slower) |
+| Create post with 5 tags | 6,680 i/s | 7,532 i/s |
+| Replace tags of existing post | 12,334 i/s | 12,341 i/s |
+| Bulk seed 10k posts | 0.08 s | 0.10 s |
+| Storage, tables + indexes | 0.63 MB | 0.62 MB |
+
+The integrity check holds on SQLite too: after all suites the per-row
+triggers' aggregate matched a live `json_each .. GROUP BY` aggregation
+exactly.
+
+Reading the table: the query rows flip in favor of the join-table gems.
+SQLite has no GIN equivalent, so metka's `EXISTS json_each` predicates scan
+the table (~2.5 ms per query at 10k rows, growing linearly), while the
+join-table gems' ordinary B-tree indexes work on SQLite exactly as they do
+on PostgreSQL. Everything else favors metka by a wide margin: single-column
+writes beat the load-diff-insert tagging machinery ~16–28x, `insert_all`
+seeding works at all (the join-table gems must create row by row), and a JSON
+text column is ~11–20x smaller on disk than tags + taggings + their indexes.
+Writes are also where SQLite punishes the join-table gems hardest: every
+tagging row insert/delete is a separate statement against a single-writer
+database.
+
 ## Why the numbers fall where they do
 
 - **Array gems vs join-table gems.** Every tag operation in metka /
@@ -101,7 +154,8 @@ script verifies this at the end of every run.
   `metka:strategies:table` generator. If those features are unused,
   the join tables are pure overhead — 4.4–6.6x on disk here.
 
-Caveats: single machine, Dockerized PostgreSQL with default settings, one
-run per suite via benchmark-ips (2 s warmup / 5 s measure), 10k rows fits in
-memory. Relative ordering is stable across runs; treat absolute numbers as
+Caveats: single machine, Dockerized PostgreSQL with default settings, the
+SQLite run against a local file database with default pragmas, one run per
+suite via benchmark-ips (2 s warmup / 5 s measure), 10k rows fits in memory.
+Relative ordering is stable across runs; treat absolute numbers as
 indicative only.

@@ -461,6 +461,32 @@ keeping it fresh, which stays within measurement noise:
 | none (live aggregation) | 212 | 1,619 | 8,293 | 0.21 s | 2.68 MB |
 | table | 9,025 | 1,495 | 8,131 | 0.17 s | 2.75 MB |
 
+### SQLite results
+
+The suite also runs on SQLite (`DB=sqlite`), against the gems that support it
+— acts-as-taggable-on and gutentag; acts-as-taggable-array-on and tag_columns
+are PostgreSQL-only and sit this one out. Same dataset and conventions as
+above (Ruby 4.0, Rails 8.1, SQLite 3.53, metka with the table aggregate in
+place):
+
+| Operation | metka | acts-as-taggable-on | gutentag |
+| --- | --- | --- | --- |
+| Query: ALL of 2 tags, load records | 397 | 3,294 | 1,965 |
+| Query: ANY of 2 tags, count | 378 | 426 | 1,944 |
+| Tag cloud over all posts | 12,685 | 111 | 86 |
+| Create post with 5 tags | 6,680 | 263 | 281 |
+| Replace tags of existing post | 12,334 | 434 | 760 |
+| Bulk seed 10k posts | 0.08 s | 31.1 s | 35.2 s |
+| Storage, tables + indexes | 0.63 MB | 12.53 MB | 7.20 MB |
+
+The trade-off flips on reads: SQLite has no GIN equivalent, so metka's tag
+queries are `json_each` table scans while the join-table gems keep their
+ordinary B-tree indexes — that's the query rows going to them. Everything
+else — writes (~27x), bulk seeding (~400x), storage (~11–20x) and the
+maintained tag cloud (>100x) — goes to metka by a wide margin. At 10k rows a
+metka tag query still answers in ~2.5 ms; whether the read gap matters
+depends on how big the table gets and how read-heavy tagging is.
+
 Keep in mind that these results alone can't prove one solution better than
 the others — each gem has unique features. The join-table gems maintain a
 normalized tag vocabulary (global renames, tag metadata, cross-model tags)
