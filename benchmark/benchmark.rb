@@ -97,12 +97,12 @@ ActiveRecord::Schema.define do
 end
 
 run_bundled_migrations("acts-as-taggable-on")
-[ActsAsTaggableOnMigration, AddMissingUniqueIndices, AddTaggingsCounterCacheToTags,
+[ ActsAsTaggableOnMigration, AddMissingUniqueIndices, AddTaggingsCounterCacheToTags,
  AddMissingTaggableIndex, ChangeCollationForTagNames, AddMissingIndexesOnTaggings,
- AddTenantToTaggings].each { |m| m.migrate(:up) }
+ AddTenantToTaggings ].each { |m| m.migrate(:up) }
 
 run_bundled_migrations("gutentag")
-[GutentagTables, GutentagCacheCounter, NoNullCounters].each { |m| m.migrate(:up) }
+[ GutentagTables, GutentagCacheCounter, NoNullCounters ].each { |m| m.migrate(:up) }
 
 # ------------------------------------------------------------------ models ---
 
@@ -248,7 +248,7 @@ Benchmark.ips do |x|
   x.report("metka") { MetkaPost.tag_cloud }
   x.report("acts-as-taggable-array-on") { ArrayPost.tags_cloud }
   x.report("tag_columns") { TagColumnsPost.tags_cloud }
-  x.report("acts-as-taggable-on") { AtoPost.tag_counts_on(:tags).map { |t| [t.name, t.count] } }
+  x.report("acts-as-taggable-on") { AtoPost.tag_counts_on(:tags).map { |t| [ t.name, t.count ] } }
   x.report("gutentag") do
     Gutentag::Tag.joins(:taggings)
       .where(gutentag_taggings: { taggable_type: "GutentagPost" })
