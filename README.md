@@ -351,7 +351,7 @@ Now you can create `TaggedNote` model and work with the view like you usually do
 
 ### Materialized View Strategy
 
-Data about taggings will be aggregated in SQL Materialized View, that would be refreshed with the trigger on each change of the tagged column's data. Except for the another type of view being used, that strategy behaves the same way, as a View Strategy above.
+Data about taggings will be aggregated in SQL Materialized View, that would be refreshed by statement-level triggers — once per INSERT, UPDATE or DELETE statement that changes the tagged columns' data, no matter how many rows the statement touches. Except for the another type of view being used, that strategy behaves the same way, as a View Strategy above.
 
 ```bash
 rails g metka:strategies:materialized_view --source-table-name=NAME_OF_TABLE_WITH_TAGS --source-columns=NAME_OF_COLUMN_1 NAME_OF_COLUMN_2 --view-name=NAME_OF_RESULTING_VIEW
