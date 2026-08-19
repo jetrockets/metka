@@ -110,6 +110,23 @@ class MetkaModelTest < ActiveSupport::TestCase
     assert_equal posts(:ruby_post), Post.tagged_with("elixir", on: [ "tags" ]).first
   end
 
+  # :on lands in raw SQL as identifiers, so anything outside the declared tag
+  # columns must raise instead of reaching the query — same contract as
+  # metka_cloud.
+  test ".tagged_with raises on a column outside the declared tag columns" do
+    error = assert_raises(ArgumentError) { Post.tagged_with("ruby", on: [ "title" ]).count }
+
+    assert_match(/Unknown tag columns \["title"\]/, error.message)
+  end
+
+  test ".tagged_with raises on an undeclared column even when tags are empty" do
+    assert_raises(ArgumentError) { Post.tagged_with("", on: [ "title" ]).count }
+  end
+
+  test ".tagged_with accepts declared columns given as symbols" do
+    assert_equal 1, Post.tagged_with("elixir", on: [ :tags ]).count
+  end
+
   # A NULL tag column used to make the whole NOT(...) evaluate to NULL, so the
   # row vanished from the result rather than being kept. NULL is what a plain
   # create leaves behind whenever a model does not tag every column.

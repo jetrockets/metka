@@ -52,7 +52,7 @@ module Metka
     def define_tagged_with_scope(base)
       return if base.respond_to?(:tagged_with)
 
-      columns = @columns
+      columns = @columns.map(&:to_s)
       parser = tag_parser
       allowed = TAGGED_WITH_OPTIONS
 
@@ -66,10 +66,19 @@ module Metka
           raise ArgumentError, "Unknown tagged_with options #{unknown.inspect}, expected #{allowed.inspect}"
         end
 
+        # :on lands in raw SQL as identifiers, so it is checked against the
+        # declared columns rather than interpolated on trust — same contract
+        # as metka_cloud.
+        on = Array(options[:on] || columns).map(&:to_s)
+        unknown_columns = on - columns
+        if unknown_columns.any?
+          raise ArgumentError, "Unknown tag columns #{unknown_columns.inspect}, expected #{columns.inspect}"
+        end
+
         tag_list = parser.call(tags)
         next self if tag_list.empty?
 
-        where(::Metka::QueryBuilder.instance.call(self, options[:on] || columns, tag_list, {
+        where(::Metka::QueryBuilder.instance.call(self, on, tag_list, {
           any: options.fetch(:any, false),
           exclude: options[:exclude],
           join_operator: options[:join_operator] || ::Metka::OR
