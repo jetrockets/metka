@@ -1,23 +1,29 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" width="96" height="96">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 300" width="96" height="96">
   <style>
-    .ink { fill: none; stroke: #24292f; }
+    .ink { fill: #24292f; }
     @media (prefers-color-scheme: dark) {
-      .ink { stroke: #e6edf3; }
+      .ink { fill: #e6edf3; }
     }
   </style>
-  <!-- array brackets -->
-  <path class="ink" d="M32 16 H18 V80 H32" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
-  <path class="ink" d="M64 16 H78 V80 H64" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
-  <!-- back tag -->
-  <g transform="translate(48 48) scale(0.88) translate(-48 -48)">
-  <g transform="translate(27 30) rotate(-18)">
-    <path fill="#fb7185" fill-rule="evenodd" d="M12 0 H34 Q40 0 40 6 V20 Q40 26 34 26 H12 L2 15.6 Q0 13 2 10.4 Z
-      M12 13 m-3.2 0 a3.2 3.2 0 1 0 6.4 0 a3.2 3.2 0 1 0 -6.4 0"/>
-  </g>
-  <!-- front tag -->
-  <g transform="translate(23 48) rotate(-18)">
-    <path fill="#e11d48" fill-rule="evenodd" d="M12 0 H34 Q40 0 40 6 V20 Q40 26 34 26 H12 L2 15.6 Q0 13 2 10.4 Z
-      M12 13 m-3.2 0 a3.2 3.2 0 1 0 6.4 0 a3.2 3.2 0 1 0 -6.4 0"/>
-  </g>
+  <!-- pixel mark: [ tag tag ] on a 15px grid -->
+  <g transform="translate(15 15)" shape-rendering="crispEdges">
+    <!-- left bracket -->
+    <g class="ink">
+      <rect x="0" y="15" width="30" height="240"/>
+      <rect x="30" y="15" width="30" height="30"/>
+      <rect x="30" y="225" width="30" height="30"/>
+    </g>
+    <!-- right bracket -->
+    <g class="ink">
+      <rect x="240" y="15" width="30" height="240"/>
+      <rect x="210" y="15" width="30" height="30"/>
+      <rect x="210" y="225" width="30" height="30"/>
+    </g>
+    <!-- back tag -->
+    <g transform="translate(15 -60)">
+      <path fill="#fb7185" fill-rule="evenodd" d="M90 120 H195 V135 H210 V195 H195 V210 H90 V195 H75 V180 H60 V150 H75 V135 H90 Z M90 150 h30 v30 h-30 z"/>
+    </g>
+    <!-- front tag -->
+    <path fill="#e11d48" fill-rule="evenodd" d="M90 120 H195 V135 H210 V195 H195 V210 H90 V195 H75 V180 H60 V150 H75 V135 H90 Z M90 150 h30 v30 h-30 z"/>
   </g>
 </svg>
