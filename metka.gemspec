@@ -7,8 +7,8 @@ require 'metka/version'
 Gem::Specification.new do |spec|
   spec.name = 'metka'
   spec.version = Metka::VERSION
-  spec.authors = [ 'Igor Alexandrov', 'Andrey Morozov' ]
-  spec.email = [ 'igor.alexandrov@gmail.com', 'andrey.morozov@jetrockets.ru' ]
+  spec.authors = [ 'Igor Aleksandrov' ]
+  spec.email = [ 'igor.alexandrov@gmail.com' ]
 
   spec.summary = 'Rails tagging system based on PostgreSQL arrays and SQLite JSON columns'
   spec.description = 'Rails tagging system that stores tags in a PostgreSQL array column ' \
