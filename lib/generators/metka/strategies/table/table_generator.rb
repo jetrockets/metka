@@ -2,12 +2,14 @@
 
 require "rails/generators"
 require "rails/generators/active_record"
+require_relative "../../sql_identifier"
 
 module Metka
   module Generators
     module Strategies
       class TableGenerator < ::Rails::Generators::Base # :nodoc:
         include Rails::Generators::Migration
+        include Metka::Generators::SqlIdentifier
 
         DEFAULT_SOURCE_COLUMNS = [ "tags" ].freeze
 
@@ -32,6 +34,12 @@ module Metka
           desc: "Custom name for the resulting table"
 
         def generate_migration
+          validate_sql_identifiers!(
+            "--source-table-name" => [ source_table_name ],
+            "--source-columns" => source_columns,
+            "--table-name" => Array(options[:table_name])
+          )
+
           migration_template migration_template_file, "db/migrate/#{migration_name}.rb"
         end
 
