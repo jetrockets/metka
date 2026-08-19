@@ -2,12 +2,14 @@
 
 require "rails/generators"
 require "rails/generators/active_record"
+require_relative "../../sql_identifier"
 
 module Metka
   module Generators
     module Strategies
       class IndexGenerator < ::Rails::Generators::Base # :nodoc:
         include Rails::Generators::Migration
+        include Metka::Generators::SqlIdentifier
 
         DEFAULT_SOURCE_COLUMNS = [ "tags" ].freeze
 
@@ -36,6 +38,11 @@ module Metka
           desc: "List of the tagged columns names"
 
         def generate_migration
+          validate_sql_identifiers!(
+            "--source-table-name" => [ source_table_name ],
+            "--source-columns" => source_columns
+          )
+
           unless sqlite?
             say_status :skipped,
               "the index strategy targets SQLite; PostgreSQL GIN indexes already serve tag queries",

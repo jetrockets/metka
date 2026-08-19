@@ -57,4 +57,30 @@ class IndexGeneratorTest < Rails::Generators::TestCase
       assert_no_migration MIGRATION
     end
   end
+
+  # The options land verbatim in the migration's SQL, so anything that is not
+  # a plain identifier must fail closed instead of producing surprising DDL.
+  # Thor reports the Thor::Error on stderr and generates nothing, on either
+  # adapter: validation runs before the PostgreSQL skip.
+  test "rejects a source table name that is not a plain identifier" do
+    prepare_destination
+
+    stderr = capture(:stderr) {
+      run_generator [ "--source-table-name=notes; DROP TABLE users" ]
+    }
+
+    assert_match(/--source-table-name/, stderr)
+    assert_empty Dir.glob("#{destination_root}/db/migrate/*")
+  end
+
+  test "rejects a source column that is not a plain identifier" do
+    prepare_destination
+
+    stderr = capture(:stderr) {
+      run_generator [ "--source-table-name=notes", "--source-columns=tags)--" ]
+    }
+
+    assert_match(/--source-columns/, stderr)
+    assert_empty Dir.glob("#{destination_root}/db/migrate/*")
+  end
 end
